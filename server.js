@@ -22,6 +22,18 @@ app.use('/api/users', userRoutes);
 const bookRoutes = require('./routes/books');
 app.use('/api/books', bookRoutes);
 
+// 👇 방금 만든 모임방 API 창구 연결!
+const roomRoutes = require('./routes/rooms');
+app.use('/api/rooms', roomRoutes);
+
+// 👇 방금 만든 메모(Annotation) API 창구 연결!
+const annotationRoutes = require('./routes/annotations');
+app.use('/api/annotations', annotationRoutes);
+
+// 👇 대망의 마지막! 독서 기록(Reading Log) API 창구 연결!
+const readingLogRoutes = require('./routes/readingLogs');
+app.use('/api/reading-logs', readingLogRoutes);
+
 app.get('/', (req, res) => {
   res.send('교환독서 백엔드 서버가 정상적으로 켜졌습니다! 🚀');
 });
