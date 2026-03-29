@@ -1,19 +1,24 @@
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
-  email: { 
-    type: String, 
-    required: true, 
-    unique: true // 이메일은 중복 가입 안 되게 막기!
+const UserSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true
   },
-  nickname: { 
-    type: String, 
-    required: true 
+  // 👇 바로 이 부분! 비밀번호가 들어갈 칸을 설계도에 추가해 줘!
+  password: {
+    type: String,
+    required: true
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now // 가입하면 현재 시간 자동으로 찍힘
+  nickname: {
+    type: String,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', UserSchema);
