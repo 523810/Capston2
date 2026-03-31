@@ -2,41 +2,44 @@ const express = require('express');
 const router = express.Router();
 const Room = require('../models/Room');
 
-// 🎯 [POST] 새로운 교환독서 방 만들기 API (주소: /api/rooms)
+// 🎯 [POST] 새 교환독서 모임방 만들기
 router.post('/', async (req, res) => {
   try {
-    // 하민이가 프론트에서 쏴줄 데이터들
-    const { bookId, roomName, roomType, maxMembers, creatorId } = req.body;
+    // 💡 영우의 설계도(Room.js) 필드명에 완벽하게 맞춤!
+    const { roomType, roomName, bookId, hostId, maxMembers } = req.body;
 
-    // 방장(방 만든 사람)에게 부여할 첫 번째 형광펜 색상 (예: 노란색)
-    const firstColor = "#FFD700"; 
-
-    // 새로운 방 뼈대 조립하기
+    // 1. 새로운 방 데이터 조립!
     const newRoom = new Room({
-      bookId,
-      roomName,
-      roomType,
-      maxMembers: maxMembers || 10, // 안 보내면 기본값 10명
-      members: [
-        {
-          userId: creatorId,         // 방장 ID
-          assignedColor: firstColor, // 방장 전용 색상 획득!
-          currentPage: 1,            // 첫 페이지부터 시작
-          bookmarks: []
-        }
-      ]
+      roomType,        // 예: "PUBLIC" 또는 "PRIVATE"
+      roomName,        // 예: "모순 같이 읽을 사람 구해요!"
+      bookId,          // 교환할 책의 ID
+      hostId,          // 방장 유저 ID
+      // 💡 members는 설계도상 객체 배열일 확률이 높음! (예: [{ userId: hostId }])
+      members: [{ userId: hostId }], 
+      maxMembers: maxMembers || 4
     });
 
-    await newRoom.save(); // DB 금고에 저장!
-    
-    res.status(201).json({ 
-      message: '모임방 생성 성공!', 
-      room: newRoom 
+    // 2. DB 금고에 저장!
+    await newRoom.save();
+
+    res.status(201).json({
+      message: '새로운 독서 모임방이 성공적으로 개설되었습니다! 🎉',
+      room: newRoom
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: '모임방 생성 중 에러가 발생했습니다.' });
+    console.error('방 개설 에러:', error);
+    res.status(500).json({ message: '모임방 개설 중 에러가 발생했습니다.', error: error.message });
+  }
+});
+
+// 🎯 [GET] 만들어진 모든 방 구경하기
+router.get('/', async (req, res) => {
+  try {
+    const rooms = await Room.find();
+    res.status(200).json(rooms);
+  } catch (error) {
+    res.status(500).json({ message: '방 목록 조회 실패' });
   }
 });
 
