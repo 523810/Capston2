@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs'); // 👈 방금 설치한 마법의 암호화 도구 불러오기!
+const jwt = require('jsonwebtoken'); // 👈 이거 한 줄 추가!
 const User = require('../models/User');
 
 // 🎯 [POST] '진짜' 회원가입 API (주소: /api/users/register)
@@ -41,6 +42,49 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: '회원가입 처리 중 에러가 발생했습니다.' });
+  }
+});
+
+// 🎯 [POST] '진짜' 로그인 API (주소: /api/users/login)
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // 1. 문지기 1차 검사: "우리 DB에 가입된 이메일 맞나요?"
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: '가입되지 않은 이메일입니다.' });
+    }
+
+    // 2. 깐깐한 비밀번호 검사: "입력한 비번 갈아서 DB 외계어랑 비교할게요!"
+    const isMatch = await bcrypt.compare(password, user.password); // 👈 핵심 마법 1줄!
+    
+    if (!isMatch) {
+      return res.status(400).json({ message: '비밀번호가 일치하지 않습니다.' });
+    }
+
+    // 🎟️ 자유이용권(토큰) 발급! 
+    // 유저 고유 ID를 담아서, 'mySuperSecretKey'라는 우리 서버만의 비밀 도장으로 꽉 찍어줌! (유효기간 1시간)
+    const token = jwt.sign(
+      { id: user._id }, 
+      'mySuperSecretKey', 
+      { expiresIn: '1h' }
+    );
+
+    // 3. 문 열어주기! (성공 응답)
+    res.status(200).json({
+      message: '로그인 대성공! 교환독서에 오신 것을 환영합니다!',
+      token, // 👈 프론트엔드로 팔찌(토큰) 데이터 쏴주기!
+      user: {
+        id: user._id,
+        email: user.email,
+        nickname: user.nickname
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: '로그인 처리 중 에러가 발생했습니다.' });
   }
 });
 
