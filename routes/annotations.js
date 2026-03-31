@@ -1,34 +1,45 @@
 const express = require('express');
 const router = express.Router();
-const Annotation = require('../models/Annotation'); // 어제 만든 메모 설계도 불러오기
+const Annotation = require('../models/Annotation');
 
-// 🎯 [POST] PDF 위에 메모/형광펜 남기기 API (주소: /api/annotations)
+// 🎯 [POST] 책 위에 새 포스트잇/메모 붙이기
 router.post('/', async (req, res) => {
   try {
-    // 하민이가 프론트에서 쏴줄 좌표와 메모 데이터들
+    // 영우의 완벽한 설계도 필드명 그대로 받아오기!
     const { roomId, userId, pageNum, annotationType, position, color, content } = req.body;
 
-    // 새로운 메모 데이터 조립하기
+    // 1. 새 메모 데이터 조립
     const newAnnotation = new Annotation({
       roomId,
       userId,
       pageNum,
-      annotationType, // 'POSTIT'(포스트잇), 'HIGHLIGHT'(형광펜) 등
-      position,       // { x: 150, y: 300 } 같은 마우스 좌표 값
-      color,          // 방장한테 아까 부여했던 '#FFD700' 같은 색상
-      content         // 포스트잇에 적은 글 내용 (형광펜이면 비어있을 수도 있음)
+      annotationType, // 'POSTIT', 'HIGHLIGHT', 'DRAWING' 중 하나!
+      position,       // { x: 숫자, y: 숫자 } 형태!
+      color,
+      content
     });
 
-    await newAnnotation.save(); // DB 금고에 저장!
-    
-    res.status(201).json({ 
-      message: '메모 저장 성공!', 
-      annotation: newAnnotation 
+    // 2. DB 금고에 찰싹! 붙이기
+    await newAnnotation.save();
+
+    res.status(201).json({
+      message: '포스트잇이 책에 성공적으로 붙었습니다! 📌',
+      annotation: newAnnotation
     });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: '메모 저장 중 에러가 발생했습니다.' });
+    console.error('메모 저장 에러:', error);
+    res.status(500).json({ message: '메모 저장 중 에러가 발생했습니다.', error: error.message });
+  }
+});
+
+// 🎯 [GET] 특정 방(roomId)에 붙어있는 모든 메모 구경하기 (프론트엔드 렌더링용)
+router.get('/:roomId', async (req, res) => {
+  try {
+    const annotations = await Annotation.find({ roomId: req.params.roomId });
+    res.status(200).json(annotations);
+  } catch (error) {
+    res.status(500).json({ message: '메모 목록 조회 실패' });
   }
 });
 
