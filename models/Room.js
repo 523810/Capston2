@@ -26,7 +26,9 @@ const roomSchema = new mongoose.Schema({
     required: true 
   },
   members: [{ 
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
+    // 💡 이거 한 줄 추가! (기본값은 0페이지)
+    readPages: { type: Number, default: 0 }
   }],
   maxMembers: { 
     type: Number, 

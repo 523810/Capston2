@@ -106,4 +106,41 @@ router.post('/:roomId/join', async (req, res) => {
   }
 });
 
+// 🎯 [PATCH] 내 독서 진도(읽은 페이지 수) 업데이트하기 (주소: /api/rooms/:roomId/progress)
+router.patch('/:roomId/progress', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { userId, readPages } = req.body; // 프론트에서 "나(userId) 몇 페이지(readPages) 읽었어!" 하고 보냄
+
+    // 1. 일단 그 방이 있는지 찾기
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: '방을 찾을 수 없습니다.' });
+    }
+
+    // 2. 명단(members)에서 내 이름(userId) 찾기
+    const memberIndex = room.members.findIndex(m => m.userId.toString() === userId);
+    
+    // 만약 명단에 내가 없다면? 쫓아내기!
+    if (memberIndex === -1) {
+      return res.status(403).json({ message: '이 방의 참여자가 아닙니다. ❌' });
+    }
+
+    // 3. 찾았다면? 읽은 페이지 수 쫙 올려주기! 📈
+    room.members[memberIndex].readPages = readPages;
+    
+    // 4. 변경된 명단 DB에 최종 저장!
+    await room.save();
+
+    res.status(200).json({
+      message: '진도율이 성공적으로 갱신되었습니다! 🚀',
+      room: room // 업데이트된 방 정보 통째로 던져주기 (프론트가 이거 보고 게이지 그림)
+    });
+
+  } catch (error) {
+    console.error('진도율 업데이트 에러:', error);
+    res.status(500).json({ message: '진도율 업데이트에 실패했습니다.' });
+  }
+});
+
 module.exports = router;
