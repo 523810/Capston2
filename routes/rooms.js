@@ -33,13 +33,35 @@ router.post('/', async (req, res) => {
   }
 });
 
-// 🎯 [GET] 만들어진 모든 방 구경하기 (테스트용)
+// 🎯 [GET] 방 목록 똑똑하게 조회하기 (검색 & 내가 참여한 방 필터링)
 router.get('/', async (req, res) => {
   try {
-    const rooms = await Room.find();
+    // 1. 프론트엔드가 주소창 끝에 달고 보내는 조건(Query)들 받아오기
+    const { userId, search } = req.query;
+    
+    // 2. 몽고DB한테 "이 조건으로 찾아줘!" 할 검색어 상자 만들기
+    let queryCondition = {};
+
+    // 조건 A: "내가 참여 중인 방" 탭을 눌렀을 때
+    if (userId) {
+      // members 배열 안의 userId가 내 아이디랑 일치하는 방만 찾아라!
+      queryCondition['members.userId'] = userId; 
+    }
+
+    // 조건 B: 검색창에 제목을 쳤을 때 (예: "해리포터")
+    if (search) {
+      // 대소문자 구분 없이($options: 'i'), 검색어가 포함된($regex) 방 제목 찾아라!
+      queryCondition.roomName = { $regex: search, $options: 'i' }; 
+    }
+
+    // 3. 조건 상자 들고 금고 가서 최신순(createdAt: -1)으로 꺼내오기!
+    const rooms = await Room.find(queryCondition).sort({ createdAt: -1 });
+    
     res.status(200).json(rooms);
+
   } catch (error) {
-    res.status(500).json({ message: '방 목록 조회 실패' });
+    console.error('방 목록 조회 에러:', error);
+    res.status(500).json({ message: '방 목록 조회에 실패했습니다.' });
   }
 });
 
