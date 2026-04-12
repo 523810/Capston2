@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Room = require('../models/Room');
+const crypto = require('crypto'); // 👈 6자리 랜덤 코드를 뽑아주는 Node 기본 마법 도구!
 
 // 🎯 [POST] 새 교환독서 모임방 만들기 (비밀번호 필수!)
 router.post('/', async (req, res) => {
@@ -8,11 +9,15 @@ router.post('/', async (req, res) => {
     // 💡 프론트에서 방 비밀번호(roomPassword)까지 싹 받아오기 (bookId는 일단 없음!)
     const { roomType, roomName, roomPassword, hostId, maxMembers } = req.body;
 
+    // 💡 6자리 고유 초대 코드 마법 생성기 (예: "A1B2C3")
+    const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+
     // 1. 새로운 방 데이터 조립!
     const newRoom = new Room({
       roomType,
       roomName,
       roomPassword, // 👈 쉿! 비밀방 암호 저장
+      inviteCode,   // 👈 새로 만든 6자리 자동 코드 등록!
       hostId,
       members: [{ userId: hostId }], // 방장은 멤버 명단에 1빠로 등록!
       maxMembers: maxMembers || 4
@@ -83,6 +88,11 @@ router.post('/:roomId/join', async (req, res) => {
       return res.status(403).json({ message: '비밀번호가 틀렸습니다. ❌' });
     }
 
+    // 💎 추가된 문지기 검사 2.5: "방에 자리 있나요?" (정원 초과 검사)
+    if (room.members.length >= room.maxMembers) {
+      return res.status(400).json({ message: '방 정원이 꽉 차서 입장할 수 없습니다. 😭' });
+    }
+
     // 4. 문지기 검사 3: "이미 들어온 사람 아닌가요?"
     const isAlreadyMember = room.members.some(member => member.userId.toString() === userId);
     if (isAlreadyMember) {
@@ -103,6 +113,45 @@ router.post('/:roomId/join', async (req, res) => {
   } catch (error) {
     console.error('방 입장 에러:', error);
     res.status(500).json({ message: '방 입장 처리 중 에러가 발생했습니다.' });
+  }
+});
+
+// 🎯 [POST] 초대 코드로 방 입장하기 (주소: /api/rooms/join-by-code)
+router.post('/join-by-code', async (req, res) => {
+  try {
+    const { inviteCode, userId } = req.body;
+
+    // 1. 코드로 그 방이 진짜 있는지 찾기
+    const room = await Room.findOne({ inviteCode });
+    if (!room) {
+      return res.status(404).json({ message: '유효하지 않은 초대 코드입니다. ❌ 다시 확인해주세요.' });
+    }
+
+    // 2. 문지기 검사 1: "방에 자리 있나요?"
+    if (room.members.length >= room.maxMembers) {
+      return res.status(400).json({ message: '방 정원이 꽉 차서 입장할 수 없습니다. 😭' });
+    }
+
+    // 3. 문지기 검사 2: "이미 들어온 사람 아닌가요?"
+    const isAlreadyMember = room.members.some(member => member.userId.toString() === userId);
+    if (isAlreadyMember) {
+      return res.status(400).json({ message: '이미 님이 참여 중인 방입니다. 🙋‍♂️' });
+    }
+
+    // 4. 모든 검사 통과! 명단에 이름 적어주기 📝
+    room.members.push({ userId });
+    
+    // 5. 변경된 명단 DB에 최종 저장!
+    await room.save();
+
+    res.status(200).json({
+      message: '초대 코드로 방 입장에 성공했습니다! 환영합니다! 🎉',
+      room // 업데이트된 방 정보 통째로 던져주기
+    });
+
+  } catch (error) {
+    console.error('초대 코드 입장 에러:', error);
+    res.status(500).json({ message: '초대 코드 입장 처리 중 에러가 발생했습니다.' });
   }
 });
 
