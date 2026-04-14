@@ -65,10 +65,10 @@ router.post('/login', async (req, res) => {
     }
 
     // 🎟️ 자유이용권(토큰) 발급! 
-    // 유저 고유 ID를 담아서, 'mySuperSecretKey'라는 우리 서버만의 비밀 도장으로 꽉 찍어줌! (유효기간 1시간)
+    // 유저 고유 ID를 담아서, 비밀 도장(환경변수 JWT_SECRET)으로 꽉 찍어줌! (유효기간 1시간)
     const token = jwt.sign(
       { id: user._id }, 
-      'mySuperSecretKey', 
+      process.env.JWT_SECRET || 'mySuperSecretKey', 
       { expiresIn: '1h' }
     );
 
