@@ -28,6 +28,32 @@ router.get('/search', async (req, res) => {
   }
 });
 
+// 🏆 [GET] 도서 랭킹 조회 API (클릭수 기준 상위 5개)
+router.get('/ranking', async (req, res) => {
+  try {
+    // clickCount 내림차순(-1) 정렬하여 5개만 가져오기
+    const books = await Book.find().sort({ clickCount: -1 }).limit(5);
+    res.status(200).json(books);
+  } catch (error) {
+    console.error('도서 랭킹 조회 에러:', error);
+    res.status(500).json({ message: '순위 데이터를 가져오는 중 에러가 발생했습니다.' });
+  }
+});
+
+// 👆 [PUT] 도서 클릭(조회수) 증가 API (주소: /api/books/:id/click)
+router.put('/:id/click', async (req, res) => {
+  try {
+    const book = await Book.findById(req.params.id);
+    if (!book) return res.status(404).json({ message: '책을 찾을 수 없습니다.' });
+
+    book.clickCount += 1;
+    await book.save();
+    res.status(200).json({ message: '도서 조회수가 증가했습니다.', clickCount: book.clickCount });
+  } catch (error) {
+    res.status(500).json({ message: '조회수 증가 처리 중 에러가 발생했습니다.' });
+  }
+});
+
 // 🎯 1. [POST] 카카오에서 검색한 책을 서비스에 등록하기 API (주소: /api/books)
 router.post('/', async (req, res) => {
   try {

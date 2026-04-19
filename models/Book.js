@@ -31,6 +31,11 @@ const bookSchema = new mongoose.Schema({
   totalPages: { 
     type: Number, 
     default: 0 
+  },
+  // 💡 도서 랭킹을 위한 조회수 필드 추가
+  clickCount: {
+    type: Number,
+    default: 0
   }
 });
 

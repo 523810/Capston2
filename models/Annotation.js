@@ -3,16 +3,19 @@ const mongoose = require('mongoose');
 const annotationSchema = new mongoose.Schema({
   roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  pageNum: { type: Number, required: true }, // 몇 페이지에 있는 메모인지
-  annotationType: { type: String, enum: ['POSTIT', 'HIGHLIGHT', 'DRAWING'], required: true },
+  // 어느 책에 대한 피드인지 참조 (랭킹을 위해 필수)
+  bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true },
   
-  // 👇 프론트엔드가 PDF 위에 그려줄 위치 좌표
-  position: {
-    x: { type: Number, required: true },
-    y: { type: Number, required: true }
-  },
-  color: { type: String, required: true }, // 글쓴이의 고유 색상
-  content: { type: String }, // 포스트잇 글귀 (그냥 밑줄 긋기면 비어있을 수도 있음)
+  annotationType: { type: String, enum: ['QUOTE_TEXT', 'PHOTO_MEMO'], required: true },
+  
+  // 피드 본문 (인상깊은 문장)
+  quote: { type: String, required: true },
+  
+  // 사진 첨부 (선택)
+  imageUrl: { type: String },
+  
+  // 피드 작성자의 고유 메모 색상 등 UI용 필드 유지
+  color: { type: String, default: '#FFFFFF' }, 
   
   createdAt: { type: Date, default: Date.now }
 });
