@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs'); // 👈 방금 설치한 마법의 암호화
 const jwt = require('jsonwebtoken'); // 👈 이거 한 줄 추가!
 const User = require('../models/User');
 const Room = require('../models/Room');
+const auth = require('../middleware/auth'); // 👈 문지기 미들웨어 불러오기
+
 
 // 🎯 [POST] '진짜' 회원가입 API (주소: /api/users/register)
 router.post('/register', async (req, res) => {
@@ -137,6 +139,50 @@ router.get('/:userId/profile', async (req, res) => {
   } catch (error) {
     console.error('프로필 통계 에러:', error);
     res.status(500).json({ message: '프로필 통계를 불러오는데 실패했습니다.' });
+  }
+});
+// 🎯 [PUT] 마이페이지 프로필 수정 API (주소: /api/users/profile)
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { nickname, newPassword } = req.body;
+    const userId = req.user.id; // auth 미들웨어가 챙겨준 내 ID
+
+    // 바꿀 정보 바구니
+    let updateFields = {};
+    if (nickname) updateFields.nickname = nickname;
+    
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(newPassword, salt);
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateFields, { new: true });
+    
+    res.status(200).json({ 
+      message: '프로필이 성공적으로 수정되었습니다.',
+      user: { nickname: updatedUser.nickname, email: updatedUser.email }
+    });
+  } catch (error) {
+    console.error('프로필 수정 에러:', error);
+    res.status(500).json({ message: '프로필 수정 중 에러가 발생했습니다.' });
+  }
+});
+
+// 🎯 [DELETE] 회원 탈퇴 API (주소: /api/users/withdraw)
+router.delete('/withdraw', auth, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // 1. 유저 정보 삭제
+    await User.findByIdAndDelete(userId);
+
+    // 2. (선택) 이 유저가 쓴 글도 다 지워줄 수 있음 (일단 유저만 지우는 것으로 처리)
+    // await Annotation.deleteMany({ userId });
+
+    res.status(200).json({ message: '회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.' });
+  } catch (error) {
+    console.error('회원 탈퇴 에러:', error);
+    res.status(500).json({ message: '회원 탈퇴 처리 중 에러가 발생했습니다.' });
   }
 });
 

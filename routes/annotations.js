@@ -2,6 +2,24 @@ const express = require('express');
 const router = express.Router();
 const Annotation = require('../models/Annotation');
 const Book = require('../models/Book');
+const auth = require('../middleware/auth'); // 👈 문지기 미들웨어 불러오기
+
+// 🧑‍💻 [GET] 내 문장 수집함: 내가 쓴 피드만 모아보기 (마이페이지용)
+// ⚠️ 반드시 다른 :roomId 라우터보다 위에 있어야 'my'를 아이디로 착각하지 않음!
+router.get('/my', auth, async (req, res) => {
+  try {
+    // auth 미들웨어를 통과했으므로 req.user.id 에 내 아이디가 들어있음
+    const myAnnotations = await Annotation.find({ userId: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('bookId', 'title thumbnail') // 책 정보도 같이 가져옴
+      .populate('userId', 'nickname');
+
+    res.status(200).json(myAnnotations);
+  } catch (error) {
+    console.error('내 문장 불러오기 에러:', error);
+    res.status(500).json({ message: '내 문장 데이터를 가져오는 중 에러가 발생했습니다.' });
+  }
+});
 
 // 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기
 router.post('/', async (req, res) => {
