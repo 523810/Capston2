@@ -70,6 +70,21 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 🎯 [GET] 특정 방 1개 상세정보 가져오기 (방 상세페이지용)
+router.get('/:roomId', async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: '방을 찾을 수 없습니다.' });
+    }
+    res.status(200).json(room);
+  } catch (error) {
+    console.error('방 상세정보 조회 에러:', error);
+    res.status(500).json({ message: '방 정보를 불러오는데 실패했습니다.' });
+  }
+});
+
 // 🎯 [POST] 비밀방 입장하기 (주소: /api/rooms/:roomId/join)
 router.post('/:roomId/join', async (req, res) => {
   try {
