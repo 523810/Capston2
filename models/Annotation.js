@@ -17,6 +17,9 @@ const annotationSchema = new mongoose.Schema({
   // 피드 작성자의 고유 메모 색상 등 UI용 필드 유지
   color: { type: String, default: '#FFFFFF' }, 
   
+  // 좋아요(스크랩) 한 유저들의 ID 목록 (누가 이 글을 좋아했는지 기억)
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  
   createdAt: { type: Date, default: Date.now }
 });
 

@@ -21,6 +21,22 @@ router.get('/my', auth, async (req, res) => {
   }
 });
 
+// 💖 [GET] 내가 '좋아요(스크랩)' 누른 문장들만 모아보기 (마이페이지용)
+router.get('/scraps', auth, async (req, res) => {
+  try {
+    // likes 배열 안에 내 아이디(req.user.id)가 포함된 피드만 쏙 뽑아오기
+    const scrapedAnnotations = await Annotation.find({ likes: req.user.id })
+      .sort({ createdAt: -1 })
+      .populate('bookId', 'title thumbnail') 
+      .populate('userId', 'nickname');
+
+    res.status(200).json(scrapedAnnotations);
+  } catch (error) {
+    console.error('스크랩 불러오기 에러:', error);
+    res.status(500).json({ message: '스크랩 데이터를 가져오는 중 에러가 발생했습니다.' });
+  }
+});
+
 // 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기
 router.post('/', async (req, res) => {
   try {
@@ -84,6 +100,38 @@ router.get('/:roomId', async (req, res) => {
     res.status(200).json(annotations);
   } catch (error) {
     res.status(500).json({ message: '모임방 피드 목록 조회 실패' });
+  }
+});
+
+// ❤️ [POST] 좋아요(스크랩) 버튼 꾹 누르기 / 한 번 더 누르면 취소 (토글 기능)
+router.post('/:id/like', auth, async (req, res) => {
+  try {
+    const annotation = await Annotation.findById(req.params.id);
+    if (!annotation) {
+      return res.status(404).json({ message: '해당 글을 찾을 수 없습니다.' });
+    }
+
+    // 이미 좋아요를 눌렀는지 확인 (내 아이디가 명단에 있는지 체크)
+    const alreadyLiked = annotation.likes.includes(req.user.id);
+
+    if (alreadyLiked) {
+      // 이미 눌렀다면? -> 명단에서 내 이름 빼기 (좋아요 취소)
+      annotation.likes.pull(req.user.id);
+    } else {
+      // 안 눌렀다면? -> 명단에 내 이름 넣기 (좋아요 등록)
+      annotation.likes.push(req.user.id);
+    }
+
+    await annotation.save(); // DB에 반영 꾹!
+
+    res.status(200).json({ 
+      message: alreadyLiked ? '좋아요가 취소되었습니다.' : '마이페이지에 스크랩되었습니다! 💖',
+      likesCount: annotation.likes.length,
+      isLiked: !alreadyLiked
+    });
+  } catch (error) {
+    console.error('좋아요 처리 에러:', error);
+    res.status(500).json({ message: '좋아요 처리 중 에러가 발생했습니다.' });
   }
 });
 
