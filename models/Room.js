@@ -6,6 +6,12 @@ const roomSchema = new mongoose.Schema({
     enum: ['LOCAL', 'ONLINE'], 
     required: true 
   },
+  // 💡 추가됨: 모임방인지 교환방인지 구분하는 카테고리 (하민님 요청 반영)
+  category: {
+    type: String,
+    enum: ['READING', 'EXCHANGE'],
+    default: 'READING'
+  },
   roomName: { 
     type: String, 
     required: true 

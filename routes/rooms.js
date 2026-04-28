@@ -6,8 +6,12 @@ const crypto = require('crypto'); // 👈 6자리 랜덤 코드를 뽑아주는 
 // 🎯 [POST] 새 교환독서 모임방 만들기 (비밀번호 필수!)
 router.post('/', async (req, res) => {
   try {
-    // 💡 프론트에서 방 비밀번호(roomPassword)까지 싹 받아오기 (bookId는 일단 없음!)
-    const { roomType, roomName, roomPassword, hostId, maxMembers } = req.body;
+    // 💡 프론트에서 방 비밀번호(roomPassword) 및 새로 추가된 카테고리(category)까지 받아오기
+    let { roomType, roomName, roomPassword, hostId, maxMembers, category } = req.body;
+
+    // 프론트에서 한글로 카테고리를 보낼 경우 영어(Enum)로 변환
+    if (category === '독서모임') category = 'READING';
+    if (category === '도서교환') category = 'EXCHANGE';
 
     // 💡 6자리 고유 초대 코드 마법 생성기 (예: "A1B2C3")
     const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase();
@@ -15,6 +19,7 @@ router.post('/', async (req, res) => {
     // 1. 새로운 방 데이터 조립!
     const newRoom = new Room({
       roomType,
+      category: category || 'READING', // 기본값은 독서모임
       roomName,
       roomPassword, // 👈 쉿! 비밀방 암호 저장
       inviteCode,   // 👈 새로 만든 6자리 자동 코드 등록!
@@ -43,25 +48,25 @@ router.get('/', async (req, res) => {
   try {
     // 1. 프론트엔드가 주소창 끝에 달고 보내는 조건(Query)들 받아오기
     const { userId, search } = req.query;
-    
+
     // 2. 몽고DB한테 "이 조건으로 찾아줘!" 할 검색어 상자 만들기
     let queryCondition = {};
 
     // 조건 A: "내가 참여 중인 방" 탭을 눌렀을 때
     if (userId) {
       // members 배열 안의 userId가 내 아이디랑 일치하는 방만 찾아라!
-      queryCondition['members.userId'] = userId; 
+      queryCondition['members.userId'] = userId;
     }
 
     // 조건 B: 검색창에 제목을 쳤을 때 (예: "해리포터")
     if (search) {
       // 대소문자 구분 없이($options: 'i'), 검색어가 포함된($regex) 방 제목 찾아라!
-      queryCondition.roomName = { $regex: search, $options: 'i' }; 
+      queryCondition.roomName = { $regex: search, $options: 'i' };
     }
 
     // 3. 조건 상자 들고 금고 가서 최신순(createdAt: -1)으로 꺼내오기!
     const rooms = await Room.find(queryCondition).sort({ createdAt: -1 });
-    
+
     res.status(200).json(rooms);
 
   } catch (error) {
@@ -116,7 +121,7 @@ router.post('/:roomId/join', async (req, res) => {
 
     // 5. 모든 검사 통과! 명단에 이름 적어주기 📝
     room.members.push({ userId });
-    
+
     // 6. 변경된 명단 DB에 최종 저장!
     await room.save();
 
@@ -155,7 +160,7 @@ router.post('/join-by-code', async (req, res) => {
 
     // 4. 모든 검사 통과! 명단에 이름 적어주기 📝
     room.members.push({ userId });
-    
+
     // 5. 변경된 명단 DB에 최종 저장!
     await room.save();
 
@@ -184,7 +189,7 @@ router.patch('/:roomId/progress', async (req, res) => {
 
     // 2. 명단(members)에서 내 이름(userId) 찾기
     const memberIndex = room.members.findIndex(m => m.userId.toString() === userId);
-    
+
     // 만약 명단에 내가 없다면? 쫓아내기!
     if (memberIndex === -1) {
       return res.status(403).json({ message: '이 방의 참여자가 아닙니다. ❌' });
@@ -192,7 +197,7 @@ router.patch('/:roomId/progress', async (req, res) => {
 
     // 3. 찾았다면? 읽은 페이지 수 쫙 올려주기! 📈
     room.members[memberIndex].readPages = readPages;
-    
+
     // 4. 변경된 명단 DB에 최종 저장!
     await room.save();
 
