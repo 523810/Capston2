@@ -17,9 +17,10 @@ const roomSchema = new mongoose.Schema({
     required: true 
   },
   // 💡 추가됨: 방 입장용 비밀번호 (또는 초대 코드)
+  // 💡 수정됨: 프론트엔드 기획(공개방/비밀방)에 맞춰 비밀번호 필수를 해제함!
   roomPassword: { 
     type: String, 
-    required: true 
+    required: false 
   },
   // 💡 추가됨: 프론트엔드 화면의 '기존 모임 참여하기' 모달에 쓰일 6자리 자동 발급 코드
   inviteCode: {
