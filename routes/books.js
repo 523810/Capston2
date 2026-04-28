@@ -98,4 +98,57 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 🌟 [GET] 알라딘 API 연동: 장르별 베스트셀러 순위 (1~10위)
+router.get('/public-ranking', async (req, res) => {
+  try {
+    const { genre } = req.query; // 프론트에서 ?genre=소설 형태로 보냄
+    
+    // 알라딘 카테고리 ID 매핑 (빈 값이면 0: 종합 베스트셀러)
+    let categoryId = 0; 
+    if (genre === '소설') categoryId = 1;
+    else if (genre === '에세이') categoryId = 55889;
+    else if (genre === '경제경영') categoryId = 170;
+    else if (genre === '자기계발') categoryId = 336;
+    else if (genre === '인문') categoryId = 656;
+
+    // 팀장님이 발급받으신 TTBKey (원래는 .env에 넣는게 좋지만 확실한 작동을 위해 고정)
+    const ALADIN_TTB_KEY = 'ttbdamenke1544001'; 
+
+    // 알라딘 서버에 "베스트셀러 10개만 JS(JSON) 형식으로 줘!" 라고 요청
+    const response = await axios.get('http://www.aladin.co.kr/ttb/api/ItemList.aspx', {
+      params: {
+        ttbkey: ALADIN_TTB_KEY,
+        QueryType: 'Bestseller',
+        MaxResults: 10,  // 딱 10위까지만
+        start: 1,
+        SearchTarget: 'Book',
+        output: 'js',    // 응답을 json 형태로 받음
+        Version: 20131101,
+        CategoryId: categoryId
+      }
+    });
+
+    // 만약 데이터가 없으면 빈 배열 던짐
+    if (!response.data || !response.data.item) {
+      return res.status(200).json([]);
+    }
+
+    // 하민님(프론트)이 화면에 쓰기 편하게 데이터 모양을 예쁘게 다듬어서 보내기
+    const books = response.data.item.map((book, index) => ({
+      rank: index + 1,          // 1위, 2위...
+      title: book.title,        // 책 제목
+      author: book.author,      // 작가
+      thumbnail: book.cover,    // 표지 이미지 URL
+      publisher: book.publisher,// 출판사
+      isbn: book.isbn13 || book.isbn, // ISBN (나중에 우리 DB 저장용)
+      link: book.link           // 알라딘 상품 페이지 링크
+    }));
+
+    res.status(200).json(books);
+  } catch (error) {
+    console.error('알라딘 랭킹 API 에러:', error);
+    res.status(500).json({ message: '순위 데이터를 가져오는 중 에러가 발생했습니다.' });
+  }
+});
+
 module.exports = router;
