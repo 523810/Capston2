@@ -111,8 +111,8 @@ router.get('/public-ranking', async (req, res) => {
     else if (genre === '자기계발') categoryId = 336;
     else if (genre === '인문') categoryId = 656;
 
-    // 팀장님이 발급받으신 TTBKey (원래는 .env에 넣는게 좋지만 확실한 작동을 위해 고정)
-    const ALADIN_TTB_KEY = 'ttbdamenke1544001'; 
+    // 팀장님이 발급받으신 TTBKey (보안을 위해 .env에서 불러오기!)
+    const ALADIN_TTB_KEY = process.env.ALADIN_TTB_KEY; 
 
     // 알라딘 서버에 "베스트셀러 10개만 JS(JSON) 형식으로 줘!" 라고 요청
     const response = await axios.get('http://www.aladin.co.kr/ttb/api/ItemList.aspx', {
