@@ -16,6 +16,11 @@ const roomSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  // 💡 추가됨: 프론트엔드 요청에 따른 모임방 소개글(description)
+  description: {
+    type: String,
+    default: '' // 소개글이 필수가 아닐 수도 있으니 기본값은 빈 문자열
+  },
   // 💡 추가됨: 방 입장용 비밀번호 (또는 초대 코드)
   // 💡 수정됨: 프론트엔드 기획(공개방/비밀방)에 맞춰 비밀번호 필수를 해제함!
   roomPassword: { 

@@ -6,8 +6,8 @@ const crypto = require('crypto'); // 👈 6자리 랜덤 코드를 뽑아주는 
 // 🎯 [POST] 새 교환독서 모임방 만들기 (비밀번호 필수!)
 router.post('/', async (req, res) => {
   try {
-    // 💡 프론트에서 방 비밀번호(roomPassword) 및 새로 추가된 카테고리(category)까지 받아오기
-    let { roomType, roomName, roomPassword, hostId, maxMembers, category } = req.body;
+    // 💡 프론트에서 방 비밀번호(roomPassword) 및 카테고리(category), 소개글(description)까지 받아오기
+    let { roomType, roomName, roomPassword, hostId, maxMembers, category, description } = req.body;
 
     // 프론트에서 한글로 카테고리를 보낼 경우 영어(Enum)로 변환
     if (category === '독서모임') category = 'READING';
@@ -25,6 +25,7 @@ router.post('/', async (req, res) => {
       roomType,
       category: category || 'READING', // 기본값은 독서모임
       roomName,
+      description,  // 👈 추가됨: 프론트가 보내준 모임방 소개글 저장
       roomPassword, // 👈 쉿! 비밀방 암호 저장
       inviteCode,   // 👈 새로 만든 6자리 자동 코드 등록!
       hostId,
