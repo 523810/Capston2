@@ -13,6 +13,10 @@ router.post('/', async (req, res) => {
     if (category === '독서모임') category = 'READING';
     if (category === '도서교환') category = 'EXCHANGE';
 
+    // 💡 프론트에서 '온라인'/'오프라인'으로 보낼 경우 DB 규칙에 맞게 영어로 강제 변환
+    if (roomType === '온라인') roomType = 'ONLINE';
+    if (roomType === '오프라인' || roomType === '로컬') roomType = 'LOCAL';
+
     // 💡 6자리 고유 초대 코드 마법 생성기 (예: "A1B2C3")
     const inviteCode = crypto.randomBytes(3).toString('hex').toUpperCase();
 
