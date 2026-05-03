@@ -34,6 +34,10 @@ app.use('/api/annotations', annotationRoutes);
 const readingLogRoutes = require('./routes/readingLogs');
 app.use('/api/reading-logs', readingLogRoutes);
 
+// 👇 추가됨: 책 물려주기(HandMeDown) API 창구 연결!
+const handMeDownRoutes = require('./routes/handmedowns');
+app.use('/api/handmedowns', handMeDownRoutes);
+
 app.get('/', (req, res) => {
   res.send('교환독서 백엔드 서버가 정상적으로 켜졌습니다! 🚀');
 });

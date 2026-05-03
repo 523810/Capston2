@@ -135,4 +135,28 @@ router.post('/:id/like', auth, async (req, res) => {
   }
 });
 
+// 💣 [DELETE] 내가 쓴 피드(글/사진) 삭제하기 (주소: /api/annotations/:id)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const annotation = await Annotation.findById(req.params.id);
+    if (!annotation) {
+      return res.status(404).json({ message: '삭제하려는 피드가 존재하지 않습니다.' });
+    }
+
+    // 보안 검사: "내가 쓴 글이 맞습니까?"
+    // 토큰에서 추출한 내 아이디(req.user.id)와 글 작성자 아이디(annotation.userId) 비교
+    if (annotation.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '본인이 작성한 글만 삭제할 수 있습니다! ❌' });
+    }
+
+    // 본인이 맞으면 삭제 실행!
+    await Annotation.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({ message: '기록이 성공적으로 삭제되었습니다. 🗑️' });
+  } catch (error) {
+    console.error('피드 삭제 에러:', error);
+    res.status(500).json({ message: '피드 삭제 중 에러가 발생했습니다.' });
+  }
+});
+
 module.exports = router;

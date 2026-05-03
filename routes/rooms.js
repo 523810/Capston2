@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Room = require('../models/Room');
 const crypto = require('crypto'); // 👈 6자리 랜덤 코드를 뽑아주는 Node 기본 마법 도구!
+const auth = require('../middleware/auth'); // 👈 문지기 미들웨어 불러오기
 
 // 🎯 [POST] 새 교환독서 모임방 만들기 (비밀번호 필수!)
 router.post('/', async (req, res) => {
@@ -214,6 +215,32 @@ router.patch('/:roomId/progress', async (req, res) => {
   } catch (error) {
     console.error('진도율 업데이트 에러:', error);
     res.status(500).json({ message: '진도율 업데이트에 실패했습니다.' });
+  }
+});
+
+// 💣 [DELETE] 모임방 폭파(삭제)하기 (주소: /api/rooms/:roomId)
+router.delete('/:roomId', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: '삭제하려는 방이 존재하지 않습니다.' });
+    }
+
+    // 보안 검사: "방장 본인이 맞습니까?"
+    // 토큰에서 추출한 내 아이디(req.user.id)와 방장 아이디(room.hostId) 비교
+    if (room.hostId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '방장만 방을 삭제할 수 있습니다! ❌' });
+    }
+
+    // 방장 본인이 맞으면 삭제 실행!
+    await Room.findByIdAndDelete(roomId);
+
+    res.status(200).json({ message: '모임방이 성공적으로 삭제되었습니다. 🗑️' });
+  } catch (error) {
+    console.error('방 삭제 에러:', error);
+    res.status(500).json({ message: '방 삭제 중 에러가 발생했습니다.' });
   }
 });
 
