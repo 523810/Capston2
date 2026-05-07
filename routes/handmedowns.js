@@ -18,7 +18,7 @@ router.post('/', auth, async (req, res) => {
     });
 
     await newPost.save();
-    
+
     res.status(201).json({
       message: '물려주기 게시글이 성공적으로 등록되었습니다! 🎁',
       post: newPost
@@ -61,9 +61,9 @@ router.put('/:id/status', auth, async (req, res) => {
     post.status = post.status === 'AVAILABLE' ? 'COMPLETED' : 'AVAILABLE';
     await post.save();
 
-    res.status(200).json({ 
-      message: '나눔 상태가 변경되었습니다.', 
-      status: post.status 
+    res.status(200).json({
+      message: '나눔 상태가 변경되었습니다.',
+      status: post.status
     });
   } catch (error) {
     res.status(500).json({ message: '상태 변경 중 에러가 발생했습니다.' });
