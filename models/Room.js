@@ -30,8 +30,8 @@ const roomSchema = new mongoose.Schema({
   // 💡 추가됨: 프론트엔드 화면의 '기존 모임 참여하기' 모달에 쓰일 6자리 자동 발급 코드
   inviteCode: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    sparse: true // null 이나 undefined 인 경우 중복 검사를 통과하게 해줌 (옛날에 만든 방들 에러 방지)
   },
   // 💡 수정됨: 방을 먼저 만들고 책은 나중에 넣으므로 required: true 삭제!
   bookId: {
