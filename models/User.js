@@ -18,6 +18,11 @@ const UserSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  // 💡 추가됨: 독서 MBTI (독서 성향 테스트 결과 저장용)
+  readingMbti: {
+    type: String,
+    default: null
   }
 });
 

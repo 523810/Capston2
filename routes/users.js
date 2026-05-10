@@ -186,4 +186,39 @@ router.delete('/withdraw', auth, async (req, res) => {
   }
 });
 
+// 🧠 [POST] 독서 MBTI (독서 성향 테스트) 결과 저장 및 반환 API (주소: /api/users/mbti)
+router.post('/mbti', auth, async (req, res) => {
+  try {
+    const { answers } = req.body; // 프론트에서 보낸 질문 답변 배열 (예: [1, 2, 1, 3])
+    
+    // 임시 성향 분석 로직 (프론트/기획에 맞춰서 변경 가능)
+    let mbtiResult = '감성충만 새벽독서가';
+    let recommendedGenre = '소설/시/에세이';
+
+    if (answers && answers[0] === 1) {
+      mbtiResult = '논리정연 철학자';
+      recommendedGenre = '인문/철학';
+    } else if (answers && answers[0] === 2) {
+      mbtiResult = '트렌드 얼리어답터';
+      recommendedGenre = '자기계발/경제경영';
+    }
+
+    // 유저 DB에 결과 저장
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id, 
+      { readingMbti: mbtiResult }, 
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: '독서 성향 분석이 완료되었습니다!',
+      mbti: mbtiResult,
+      recommendedGenre
+    });
+  } catch (error) {
+    console.error('MBTI 저장 에러:', error);
+    res.status(500).json({ message: '성향 테스트 결과를 저장하는 중 에러가 발생했습니다.' });
+  }
+});
+
 module.exports = router;
