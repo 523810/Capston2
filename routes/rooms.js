@@ -13,6 +13,7 @@ router.post('/', async (req, res) => {
     // 프론트에서 한글로 카테고리를 보낼 경우 영어(Enum)로 변환
     if (category === '독서모임') category = 'READING';
     if (category === '도서교환') category = 'EXCHANGE';
+    if (category === '물려주기') category = 'HANDMEDOWN';
 
     // 💡 프론트에서 '온라인'/'오프라인'으로 보낼 경우 DB 규칙에 맞게 영어로 강제 변환
     if (roomType === '온라인') roomType = 'ONLINE';
@@ -222,7 +223,7 @@ router.patch('/:roomId/progress', async (req, res) => {
 router.delete('/:roomId', auth, async (req, res) => {
   try {
     const { roomId } = req.params;
-    
+
     const room = await Room.findById(roomId);
     if (!room) {
       return res.status(404).json({ message: '삭제하려는 방이 존재하지 않습니다.' });
