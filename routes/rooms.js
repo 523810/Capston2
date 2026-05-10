@@ -245,4 +245,53 @@ router.delete('/:roomId', auth, async (req, res) => {
   }
 });
 
+// 📚 [PATCH] 모임방에 읽을 책 등록/변경하기 (주소: /api/rooms/:roomId/book)
+router.patch('/:roomId/book', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    // 프론트에서 알라딘 API 등으로 검색한 책 정보를 통째로 보냄
+    const { title, author, isbn, thumbnail, publisher, datetime, contents } = req.body;
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: '방을 찾을 수 없습니다.' });
+    }
+
+    // 방장만 책을 바꿀 수 있게 하려면 아래 주석 해제 (일단 누구나 가능하게 둠)
+    // if (room.hostId.toString() !== req.user.id) return res.status(403).json({ message: '방장만 책을 등록할 수 있습니다.' });
+
+    const Book = require('../models/Book'); // 책 모델 불러오기
+
+    // 1. 우리 DB에 이미 있는 책인지 ISBN으로 검사
+    let book = await Book.findOne({ isbn });
+
+    // 2. 없는 책이면 새로 DB에 저장
+    if (!book) {
+      book = new Book({
+        title,
+        author,
+        isbn,
+        thumbnail,
+        publisher,
+        datetime,
+        contents
+      });
+      await book.save();
+    }
+
+    // 3. 방 정보에 책 ID 연결
+    room.bookId = book._id;
+    await room.save();
+
+    res.status(200).json({
+      message: '모임방에 책이 성공적으로 등록되었습니다! 📚',
+      book: book // 등록된 책 정보 보내주기
+    });
+
+  } catch (error) {
+    console.error('책 등록 에러:', error);
+    res.status(500).json({ message: '책 등록 중 에러가 발생했습니다.' });
+  }
+});
+
 module.exports = router;
