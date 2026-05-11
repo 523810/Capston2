@@ -138,7 +138,7 @@ router.get('/public-ranking', async (req, res) => {
       rank: index + 1,          // 1위, 2위...
       title: book.title,        // 책 제목
       author: book.author,      // 작가
-      thumbnail: book.cover,    // 표지 이미지 URL
+      cover: book.cover,        // 표지 이미지 URL (하민님 요청으로 thumbnail -> cover 변경)
       publisher: book.publisher,// 출판사
       isbn: book.isbn13 || book.isbn, // ISBN (나중에 우리 DB 저장용)
       link: book.link           // 알라딘 상품 페이지 링크
