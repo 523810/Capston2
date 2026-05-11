@@ -245,6 +245,38 @@ router.delete('/:roomId', auth, async (req, res) => {
   }
 });
 
+// 📝 [PATCH] 모임방 정보(소개글, 제목 등) 수정하기 (주소: /api/rooms/:roomId)
+router.patch('/:roomId', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { roomName, description } = req.body;
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: '수정하려는 방이 존재하지 않습니다.' });
+    }
+
+    // 보안 검사: "방장 본인이 맞습니까?"
+    if (room.hostId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '방장만 모임방 정보를 수정할 수 있습니다! ❌' });
+    }
+
+    // 변경할 내용이 있으면 업데이트!
+    if (roomName) room.roomName = roomName;
+    if (description !== undefined) room.description = description;
+
+    await room.save();
+
+    res.status(200).json({
+      message: '모임방 정보가 성공적으로 수정되었습니다! ✏️',
+      room
+    });
+  } catch (error) {
+    console.error('방 정보 수정 에러:', error);
+    res.status(500).json({ message: '방 정보 수정 중 에러가 발생했습니다.' });
+  }
+});
+
 // 📚 [PATCH] 모임방에 읽을 책 등록/변경하기 (주소: /api/rooms/:roomId/book)
 router.patch('/:roomId/book', auth, async (req, res) => {
   try {
