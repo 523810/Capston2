@@ -96,6 +96,10 @@ router.get('/:userId/profile', async (req, res) => {
   try {
     const { userId } = req.params;
 
+    // 0. 유저 기본 정보(MBTI 등) 가져오기
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('-password'); // 비밀번호는 빼고!
+
     // 1. 영우가 참여 중인 모든 방(Room) 싹 다 긁어오기
     const myRooms = await Room.find({ 'members.userId': userId });
 
@@ -128,6 +132,7 @@ router.get('/:userId/profile', async (req, res) => {
     // 5. 프론트엔드가 받기 좋게 예쁘게 포장해서 던져주기
     res.status(200).json({
       message: '프로필 통계 조회 성공! 📊',
+      user: user, // 👈 여기에 유저 기본 정보(MBTI 등)가 통째로 들어감!
       stats: {
         temperature: readingTemp.toFixed(1), // 소수점 첫째 자리까지만 예쁘게 자르기
         participatingRooms: participatingCount,
