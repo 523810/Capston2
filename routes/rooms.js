@@ -229,10 +229,11 @@ router.delete('/:roomId', auth, async (req, res) => {
       return res.status(404).json({ message: '삭제하려는 방이 존재하지 않습니다.' });
     }
 
-    // 🚨 데모 시연을 위해 임시로 방장 권한 검사 해제!
-    // if (room.hostId.toString() !== req.user.id) {
-    //   return res.status(403).json({ message: '방장만 방을 삭제할 수 있습니다! ❌' });
-    // }
+    // 보안 검사: "방장 본인이 맞습니까?"
+    // 토큰에서 추출한 내 아이디(req.user.id)와 방장 아이디(room.hostId) 비교
+    if (room.hostId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '방장만 방을 삭제할 수 있습니다! ❌' });
+    }
 
     // 방장 본인이 맞으면 삭제 실행!
     await Room.findByIdAndDelete(roomId);
@@ -255,10 +256,10 @@ router.patch('/:roomId', auth, async (req, res) => {
       return res.status(404).json({ message: '수정하려는 방이 존재하지 않습니다.' });
     }
 
-    // 🚨 데모 시연을 위해 임시로 방장 권한 검사 해제! (아무나 수정 가능하게 해서 버그 방지)
-    // if (room.hostId.toString() !== req.user.id) {
-    //   return res.status(403).json({ message: '방장만 모임방 정보를 수정할 수 있습니다! ❌' });
-    // }
+    // 보안 검사: "방장 본인이 맞습니까?"
+    if (room.hostId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '방장만 모임방 정보를 수정할 수 있습니다! ❌' });
+    }
 
     // 변경할 내용이 있으면 업데이트!
     if (roomName) room.roomName = roomName;
