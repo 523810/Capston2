@@ -54,7 +54,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     // 1. 프론트엔드가 주소창 끝에 달고 보내는 조건(Query)들 받아오기
-    const { userId, search } = req.query;
+    const { userId, search, roomType } = req.query;
 
     // 2. 몽고DB한테 "이 조건으로 찾아줘!" 할 검색어 상자 만들기
     let queryCondition = {};
@@ -69,6 +69,19 @@ router.get('/', async (req, res) => {
     if (search) {
       // 대소문자 구분 없이($options: 'i'), 검색어가 포함된($regex) 방 제목 찾아라!
       queryCondition.roomName = { $regex: search, $options: 'i' };
+    }
+
+    // 조건 C: 온라인/오프라인 탭을 눌렀을 때
+    if (roomType) {
+      // 프론트에서 소문자(online)나 offline으로 보낼 경우를 대비한 찰떡 방어코드!
+      const upperType = roomType.toUpperCase();
+      if (upperType === 'OFFLINE' || upperType === 'LOCAL') {
+        queryCondition.roomType = 'LOCAL';
+      } else if (upperType === 'ONLINE') {
+        queryCondition.roomType = 'ONLINE';
+      } else {
+        queryCondition.roomType = upperType;
+      }
     }
 
     // 3. 조건 상자 들고 금고 가서 최신순(createdAt: -1)으로 꺼내오기!
