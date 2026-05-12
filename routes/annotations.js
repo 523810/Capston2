@@ -3,6 +3,26 @@ const router = express.Router();
 const Annotation = require('../models/Annotation');
 const Book = require('../models/Book');
 const auth = require('../middleware/auth'); // 👈 문지기 미들웨어 불러오기
+const multer = require('multer'); // 사진 업로드를 위한 라이브러리
+const path = require('path');
+const fs = require('fs');
+
+// 📁 업로드 폴더가 없으면 자동으로 만들어주기
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
+
+// 📦 사진 파일 저장 설정 (이름 겹치지 않게 현재 시간 붙여서 저장)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // 🧑‍💻 [GET] 내 문장 수집함: 내가 쓴 피드만 모아보기 (마이페이지용)
 // ⚠️ 반드시 다른 :roomId 라우터보다 위에 있어야 'my'를 아이디로 착각하지 않음!
@@ -37,10 +57,13 @@ router.get('/scraps', auth, async (req, res) => {
   }
 });
 
-// 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기
-router.post('/', async (req, res) => {
+// 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기 (multer 추가!)
+router.post('/', upload.single('image'), async (req, res) => {
   try {
-    const { roomId, userId, bookId, annotationType, quote, content, text, imageUrl, color } = req.body;
+    const { roomId, userId, bookId, annotationType, quote, content, text, color } = req.body;
+    
+    // 사진 파일이 정상적으로 택배로 왔다면 해당 파일의 경로를 저장, 아니면 빈 문자열
+    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
 
     // 하민님이 프론트에서 변수명을 quote가 아닌 content나 text로 보냈을 때를 대비한 방어 코드!
     const finalQuote = quote || content || text;

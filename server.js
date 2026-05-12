@@ -3,6 +3,7 @@ const cors = require('cors');
 const mongoose = require('mongoose'); // 몽구스 불러오기
 const http = require('http'); // 👈 소켓 통신을 위한 Node 기본 HTTP 모듈
 const { Server } = require('socket.io'); // 👈 실시간 통신 라이브러리 (Socket.io)
+const path = require('path'); // 파일 경로 처리 모듈
 require('dotenv').config();
 
 const app = express();
@@ -21,6 +22,8 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+// 👇 추가됨: 클라이언트(프론트엔드)에서 업로드된 사진을 볼 수 있도록 폴더 개방!
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 👇 여기가 몽고DB 연결하는 핵심 코드야!
 mongoose.connect(process.env.MONGODB_URI)
