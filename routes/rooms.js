@@ -72,7 +72,10 @@ router.get('/', async (req, res) => {
     }
 
     // 3. 조건 상자 들고 금고 가서 최신순(createdAt: -1)으로 꺼내오기!
-    const rooms = await Room.find(queryCondition).sort({ createdAt: -1 });
+    // 💡 추가 완성도: 방장(hostId)의 닉네임과 MBTI를 같이 묶어서(populate) 가져옵니다!
+    const rooms = await Room.find(queryCondition)
+      .sort({ createdAt: -1 })
+      .populate('hostId', 'nickname readingMbti');
 
     res.status(200).json(rooms);
 
@@ -86,7 +89,10 @@ router.get('/', async (req, res) => {
 router.get('/:roomId', async (req, res) => {
   try {
     const { roomId } = req.params;
-    const room = await Room.findById(roomId);
+    // 💡 추가 완성도: 방장(hostId)과 참여 멤버들(members.userId)의 닉네임, MBTI를 모두 가져옵니다!
+    const room = await Room.findById(roomId)
+      .populate('hostId', 'nickname readingMbti')
+      .populate('members.userId', 'nickname readingMbti');
     if (!room) {
       return res.status(404).json({ message: '방을 찾을 수 없습니다.' });
     }
