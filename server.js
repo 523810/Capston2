@@ -80,8 +80,8 @@ io.on('connection', (socket) => {
       const newChat = new Chat({ roomId, userId, message });
       await newChat.save();
 
-      // 저장한 채팅 기록을 작성자 닉네임과 MBTI와 함께 다시 묶어서 방 안의 모두에게 방송(emit)
-      const populatedChat = await Chat.findById(newChat._id).populate('userId', 'nickname readingMbti');
+      // 저장한 채팅 기록을 작성자 닉네임과 함께 다시 묶어서(Populate 느낌) 방 안의 모두에게 방송(emit)
+      const populatedChat = await Chat.findById(newChat._id).populate('userId', 'nickname');
 
       // 같은 방(roomId)에 있는 모든 사람에게 'receiveMessage' 라는 이름으로 데이터 쏴주기
       io.to(roomId).emit('receiveMessage', populatedChat);

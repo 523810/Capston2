@@ -9,10 +9,10 @@ router.get('/:roomId', auth, async (req, res) => {
     const { roomId } = req.params;
 
     // 해당 방에서 오간 채팅들을 보낸 시간 순서대로 정렬해서 가져오기
-    // 💡 추가 완성도: 채팅 작성자의 닉네임과 MBTI를 같이 묶어서 보내줌 (유저 성향 표시용)
+    // 누가 보냈는지 닉네임과 프로필 사진(있다면)도 같이 묶어서 보내줌
     const chats = await Chat.find({ roomId })
       .sort({ createdAt: 1 }) // 과거 글부터 차례대로 보여줘야 하니까 오름차순(1)
-      .populate('userId', 'nickname readingMbti'); 
+      .populate('userId', 'nickname'); 
 
     res.status(200).json(chats);
   } catch (error) {
