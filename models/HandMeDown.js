@@ -12,6 +12,12 @@ const handMeDownSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // 💡 추가됨: '나눔'인지 '교환'인지 구분하는 타입 (프론트엔드 탭 연동용)
+  tradeType: {
+    type: String,
+    enum: ['SHARE', 'EXCHANGE'], // SHARE = 나눔, EXCHANGE = 교환
+    default: 'SHARE'
+  },
   bookThumbnail: {
     type: String,
     default: ''

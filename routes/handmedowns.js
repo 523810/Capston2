@@ -6,7 +6,7 @@ const auth = require('../middleware/auth'); // 문지기
 // 🎯 [POST] 물려주기 게시판에 새 글 올리기 (주소: /api/handmedowns)
 router.post('/', auth, async (req, res) => {
   try {
-    const { bookTitle, bookThumbnail, bookAuthor, comment, contactLink } = req.body;
+    const { bookTitle, bookThumbnail, bookAuthor, comment, contactLink, tradeType } = req.body;
 
     const newPost = new HandMeDown({
       ownerId: req.user.id, // 토큰에서 자동 추출
@@ -14,7 +14,8 @@ router.post('/', auth, async (req, res) => {
       bookThumbnail,
       bookAuthor,
       comment,
-      contactLink
+      contactLink,
+      tradeType: tradeType || 'SHARE' // 프론트에서 안 보내면 기본값 '나눔(SHARE)'
     });
 
     await newPost.save();
@@ -32,8 +33,19 @@ router.post('/', auth, async (req, res) => {
 // 📖 [GET] 물려주기 게시판 전체 목록 보기 (주소: /api/handmedowns)
 router.get('/', async (req, res) => {
   try {
+    const { tradeType } = req.query; // 프론트에서 탭 누를 때 보내는 조건
+
+    let queryCondition = {};
+    if (tradeType) {
+      // 대소문자 방어 및 한글 방어
+      const type = tradeType.toUpperCase();
+      if (type === '나눔' || type === 'SHARE') queryCondition.tradeType = 'SHARE';
+      else if (type === '교환' || type === 'EXCHANGE') queryCondition.tradeType = 'EXCHANGE';
+      else queryCondition.tradeType = type;
+    }
+
     // 최신 글부터 정렬해서 가져오기, 올린 사람의 닉네임도 같이 묶어서 가져오기
-    const posts = await HandMeDown.find()
+    const posts = await HandMeDown.find(queryCondition)
       .sort({ createdAt: -1 })
       .populate('ownerId', 'nickname');
 

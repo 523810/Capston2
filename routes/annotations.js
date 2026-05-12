@@ -107,14 +107,26 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 // 🖼️ [GET] 필사 전시회: 전체 모임방 최신 멋진 글귀 10개 구경하기 (앱 홈 화면용)
 router.get('/exhibition', async (req, res) => {
   try {
-    // 가장 최근에 올라온 순(내림차순, -1)으로 10개만 뽑기!
-    const annotations = await Annotation.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate('bookId', 'title thumbnail') // 보여줄 때 무슨 책인지 제목과 표지도 같이 보내줌
-      .populate('userId', 'nickname');       // 누가 썼는지 닉네임도 같이 보내줌
+    const { tab } = req.query; // 'NEW' 또는 'TRENDING'
 
-    res.status(200).json(annotations);
+    // 일단 DB에서 데이터를 다 가져온 후 (데이터가 적은 캡스톤용이라 가능)
+    let annotations = await Annotation.find()
+      .populate('bookId', 'title thumbnail')
+      .populate('userId', 'nickname');
+
+    // 프론트가 누른 탭에 따라 정렬 방식 바꾸기!
+    if (tab && tab.toUpperCase() === 'TRENDING') {
+      // TRENDING: 좋아요(likes 배열 길이)가 많은 순서대로 정렬
+      annotations.sort((a, b) => b.likes.length - a.likes.length);
+    } else {
+      // 기본(NEW): 최신순(createdAt)으로 정렬
+      annotations.sort((a, b) => b.createdAt - a.createdAt);
+    }
+
+    // 상위 10개만 짤라서 보내주기
+    const top10Annotations = annotations.slice(0, 10);
+
+    res.status(200).json(top10Annotations);
   } catch (error) {
     console.error('필사 전시회 에러:', error);
     res.status(500).json({ message: '전시회 데이터를 가져오는 중 에러가 발생했습니다.' });
