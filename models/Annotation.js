@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 
 const annotationSchema = new mongoose.Schema({
-  roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true },
+  // 방 번호 (데모 시연을 위해 임시로 필수 해제 - 하민님이 프론트에서 안 보내주고 계심!)
+  roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: false },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   // 어느 책에 대한 피드인지 참조 (데모 시연을 위해 임시로 필수 해제!)
   bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: false },
