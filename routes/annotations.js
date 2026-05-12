@@ -58,9 +58,11 @@ router.get('/scraps', auth, async (req, res) => {
 });
 
 // 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기 (multer 추가!)
-router.post('/', upload.single('image'), async (req, res) => {
+router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
-    const { roomId, userId, bookId, annotationType, quote, content, text, color } = req.body;
+    console.log('📥 [피드 업로드 요청 들어옴] 데이터:', req.body);
+    const { roomId, bookId, annotationType, quote, content, text, color } = req.body;
+    const userId = req.user.id; // 프론트에서 body로 안 보내도, 토큰(auth)에서 자동으로 빼내기!
     
     // 사진 파일이 정상적으로 택배로 왔다면 해당 파일의 경로를 저장, 아니면 빈 문자열
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
