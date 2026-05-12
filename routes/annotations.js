@@ -40,15 +40,22 @@ router.get('/scraps', auth, async (req, res) => {
 // 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기
 router.post('/', async (req, res) => {
   try {
-    const { roomId, userId, bookId, annotationType, quote, imageUrl, color } = req.body;
+    const { roomId, userId, bookId, annotationType, quote, content, text, imageUrl, color } = req.body;
+
+    // 하민님이 프론트에서 변수명을 quote가 아닌 content나 text로 보냈을 때를 대비한 방어 코드!
+    const finalQuote = quote || content || text;
+
+    if (!finalQuote) {
+      return res.status(400).json({ message: '게시글 내용(quote/content/text)이 비어있습니다!' });
+    }
 
     // 1. 새 피드 데이터 조립
     const newAnnotation = new Annotation({
       roomId,
       userId,
-      bookId, // 피드를 올릴 때 랭킹 점수를 위해 책 ID 필수!
+      bookId, // 피드를 올릴 때 랭킹 점수를 위해 책 ID 필수! (현재 DB 임시 해제 상태)
       annotationType, // 'QUOTE_TEXT' 또는 'PHOTO_MEMO'
-      quote,
+      quote: finalQuote,
       imageUrl,
       color
     });

@@ -3,12 +3,13 @@ const mongoose = require('mongoose');
 const annotationSchema = new mongoose.Schema({
   roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'Room', required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  // 어느 책에 대한 피드인지 참조 (랭킹을 위해 필수)
-  bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: true },
+  // 어느 책에 대한 피드인지 참조 (데모 시연을 위해 임시로 필수 해제!)
+  bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: false },
   
-  annotationType: { type: String, enum: ['QUOTE_TEXT', 'PHOTO_MEMO'], required: true },
+  // 타입도 임시로 필수 해제
+  annotationType: { type: String, enum: ['QUOTE_TEXT', 'PHOTO_MEMO'], required: false, default: 'QUOTE_TEXT' },
   
-  // 피드 본문 (인상깊은 문장)
+  // 피드 본문 (인상깊은 문장) - 팀장님 피드백 반영: 글 내용은 무조건 있어야 하므로 다시 필수!
   quote: { type: String, required: true },
   
   // 사진 첨부 (선택)
