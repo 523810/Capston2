@@ -91,6 +91,37 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// 🎯 [POST] 비밀번호 재설정 API (주소: /api/users/reset-password)
+// 이메일 인증이 불가능하므로, '이메일'과 '가입할 때 썼던 닉네임' 두 가지가 모두 일치하면 비밀번호를 바꿔줍니다!
+router.post('/reset-password', async (req, res) => {
+  try {
+    const { email, nickname, newPassword } = req.body;
+
+    if (!email || !nickname || !newPassword) {
+      return res.status(400).json({ message: '이메일, 닉네임, 새 비밀번호를 모두 입력해주세요!' });
+    }
+
+    // 1. 문지기 검사: "이메일이랑 닉네임이 정확히 일치하는 유저가 있나?"
+    const user = await User.findOne({ email, nickname });
+    if (!user) {
+      return res.status(404).json({ message: '입력하신 이메일과 닉네임에 일치하는 회원 정보가 없습니다.' });
+    }
+
+    // 2. 새 비밀번호 암호화 (소금 치기)
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // 3. 비밀번호 업데이트 및 저장
+    user.password = hashedPassword;
+    await user.save();
+
+    res.status(200).json({ message: '비밀번호가 성공적으로 재설정되었습니다! 새 비밀번호로 로그인해주세요. 🔐' });
+  } catch (error) {
+    console.error('비밀번호 재설정 에러:', error);
+    res.status(500).json({ message: '비밀번호 재설정 중 서버 에러가 발생했습니다.' });
+  }
+});
+
 // 🎯 [GET] 마이페이지 유저 통계 가져오기 (주소: /api/users/:userId/profile)
 router.get('/:userId/profile', async (req, res) => {
   try {
