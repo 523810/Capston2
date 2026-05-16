@@ -99,7 +99,16 @@ router.get('/', async (req, res) => {
 router.get('/:roomId', async (req, res) => {
   try {
     const { roomId } = req.params;
-    const room = await Room.findById(roomId);
+    const { populate } = req.query;
+    
+    // 기본적으로는 기존처럼 아이디만 가져오되, 프론트에서 ?populate=true 라고 덧붙이면 닉네임과 MBTI까지 묶어서 줌!
+    let query = Room.findById(roomId);
+    if (populate === 'true') {
+      query = query.populate('members.userId', 'nickname email readingMbti');
+    }
+    
+    const room = await query;
+
     if (!room) {
       return res.status(404).json({ message: '방을 찾을 수 없습니다.' });
     }
