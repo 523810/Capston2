@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const bcrypt = require('bcryptjs'); // 👈 방금 설치한 마법의 암호화 도구 불러오기!
-const jwt = require('jsonwebtoken'); // 👈 이거 한 줄 추가!
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Room = require('../models/Room');
-const auth = require('../middleware/auth'); // 👈 문지기 미들웨어 불러오기
+const ReadingLog = require('../models/ReadingLog'); // 💡 독서 온도 계산에 독서 기록도 반영!
+const auth = require('../middleware/auth');
 
 
 // 🎯 [POST] '진짜' 회원가입 API (주소: /api/users/register)
@@ -155,20 +156,24 @@ router.get('/:userId/profile', async (req, res) => {
       }
     });
 
-    // 4. 하이라이트! 🌡️ 독서 온도 계산 로직 
-    // (기본 체온 36.5도 + 읽은 페이지 10장당 0.1도 상승!)
-    let readingTemp = 36.5 + (totalReadPages / 100);
-    if (readingTemp > 100) readingTemp = 100; // 최고 온도는 100도로 제한🔥
+    // 4. 💡 개선됨: 독서 기록(reading-logs)에서도 읽은 페이지 합산!
+    const readingLogs = await ReadingLog.find({ userId });
+    const logReadPages = readingLogs.reduce((sum, log) => sum + (log.readPages || 0), 0);
+    const combinedPages = totalReadPages + logReadPages; // 모임방 + 독서기록 합산
 
-    // 5. 프론트엔드가 받기 좋게 예쁘게 포장해서 던져주기
+    // 5. 🌡️ 독서 온도 계산 (기본 체온 36.5 + 합산 페이지 10장당 0.1도 상승)
+    let readingTemp = 36.5 + (combinedPages / 100);
+    if (readingTemp > 100) readingTemp = 100;
+
+    // 6. 프론트엔드가 받기 좋게 포장해서 전달
     res.status(200).json({
       message: '프로필 통계 조회 성공! 📊',
-      user: user, // 👈 여기에 유저 기본 정보(MBTI 등)가 통째로 들어감!
+      user: user,
       stats: {
-        temperature: readingTemp.toFixed(1), // 소수점 첫째 자리까지만 예쁘게 자르기
+        temperature: readingTemp.toFixed(1),
         participatingRooms: participatingCount,
         finishedBooks: finishedCount,
-        totalReadPages: totalReadPages
+        totalReadPages: combinedPages // 모임방 + 독서기록 합산 페이지
       }
     });
 
@@ -222,34 +227,53 @@ router.delete('/withdraw', auth, async (req, res) => {
   }
 });
 
-// 🧠 [POST] 독서 MBTI (독서 성향 테스트) 결과 저장 및 반환 API (주소: /api/users/mbti)
+// 🧠 [POST] 독서 MBTI (독서 성향 테스트) 결과 저장 API (주소: /api/users/mbti)
 router.post('/mbti', auth, async (req, res) => {
   try {
-    const { answers } = req.body; // 프론트에서 보낸 질문 답변 배열 (예: [1, 2, 1, 3])
-    
-    // 임시 성향 분석 로직 (프론트/기획에 맞춰서 변경 가능)
-    let mbtiResult = '감성충만 새벽독서가';
-    let recommendedGenre = '소설/시/에세이';
+    const { answers } = req.body; // 예: [1, 3, 2, 1, 3]
 
-    if (answers && answers[0] === 1) {
-      mbtiResult = '논리정연 철학자';
-      recommendedGenre = '인문/철학';
-    } else if (answers && answers[0] === 2) {
-      mbtiResult = '트렌드 얼리어답터';
-      recommendedGenre = '자기계발/경제경영';
+    if (!answers || answers.length === 0) {
+      return res.status(400).json({ message: '답변을 입력해주세요!' });
     }
 
-    // 유저 DB에 결과 저장
-    const updatedUser = await User.findByIdAndUpdate(
-      req.user.id, 
-      { readingMbti: mbtiResult }, 
-      { new: true }
-    );
+    // 💡 개선됨: 모든 답변을 합산해서 비율로 성향 분류
+    // 각 답변은 1(감성적), 2(실용적), 3(탐구적) 중 하나
+    const total = answers.reduce((sum, a) => sum + a, 0);
+    const maxPossible = answers.length * 3; // 최대 가능 점수
+    const ratio = total / maxPossible; // 0~1 사이 비율
+
+    let mbtiResult, recommendedGenre, description;
+
+    if (ratio < 0.35) {
+      mbtiResult = '감성충만 새벽독서가';
+      recommendedGenre = '소설/시/에세이';
+      description = '감수성이 풍부하고 문학적 표현을 사랑합니다.';
+    } else if (ratio < 0.50) {
+      mbtiResult = '공감하는 이야기꾼';
+      recommendedGenre = '소설/에세이/인문';
+      description = '사람과 이야기에 관심이 많고 공감 능력이 뛰어납니다.';
+    } else if (ratio < 0.62) {
+      mbtiResult = '트렌드 얼리어답터';
+      recommendedGenre = '자기계발/경제경영';
+      description = '실용적인 지식을 빠르게 습득하고 적용하는 것을 좋아합니다.';
+    } else if (ratio < 0.78) {
+      mbtiResult = '논리정연 철학자';
+      recommendedGenre = '인문/철학/과학';
+      description = '깊은 사고와 논리적 분석을 즐기는 독서가입니다.';
+    } else {
+      mbtiResult = '사색하는 인문학자';
+      recommendedGenre = '역사/철학/고전';
+      description = '넓은 시각으로 인류의 지혜를 탐구하는 깊이있는 독서가입니다.';
+    }
+
+    // DB에 결과 저장
+    await User.findByIdAndUpdate(req.user.id, { readingMbti: mbtiResult }, { new: true });
 
     res.status(200).json({
       message: '독서 성향 분석이 완료되었습니다!',
       mbti: mbtiResult,
-      recommendedGenre
+      recommendedGenre,
+      description
     });
   } catch (error) {
     console.error('MBTI 저장 에러:', error);
