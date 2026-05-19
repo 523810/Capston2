@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const sgMail = require('@sendgrid/mail');
+const nodemailer = require('nodemailer');
 
-// SendGrid API 키 설정 (환경변수에서 불러오기)
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// 📧 메일 전송을 담당할 구글 우체부 아저씨(Transporter) 설정
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER, // 팀장님 구글 이메일 주소
+    pass: process.env.GMAIL_APP_PASSWORD // 구글 앱 비밀번호 (16자리)
+  }
+});
 
 // 📦 인증번호를 임시로 저장하는 메모리 창고 (DB 대신 빠른 임시 저장소!)
 // { 이메일: { code: '123456', expiresAt: 만료시각 } } 형태로 저장
@@ -31,10 +37,10 @@ router.post('/send-sms', async (req, res) => {
       expiresAt: Date.now() + 5 * 60 * 1000 // 현재 시각 + 5분
     };
 
-    // 3. SendGrid로 이메일 발송!
-    const msg = {
-      to: target,
-      from: process.env.SENDGRID_FROM_EMAIL, // SendGrid에 등록된 발신자 이메일
+    // 3. 구글 Gmail로 이메일 발송!
+    const mailOptions = {
+      from: `"교환독서 관리자" <${process.env.GMAIL_USER}>`, // 보내는 사람
+      to: target, // 받는 사람
       subject: '[교환독서] 이메일 인증번호',
       html: `
         <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f9f9f9; border-radius: 12px;">
@@ -48,13 +54,14 @@ router.post('/send-sms', async (req, res) => {
       `
     };
 
-    await sgMail.send(msg);
+    // 메일 쏘기!
+    await transporter.sendMail(mailOptions);
 
-    console.log(`📧 [인증번호 발송 완료] ${target} → ${code}`);
+    console.log(`📧 [Gmail 인증번호 발송 완료] ${target} → ${code}`);
     res.status(200).json({ message: `인증번호가 ${target} 으로 발송되었습니다! 📧` });
 
   } catch (error) {
-    console.error('인증번호 발송 에러:', error.response?.body || error.message);
+    console.error('인증번호 발송 에러:', error);
     res.status(500).json({ message: '인증번호 발송 중 에러가 발생했습니다.' });
   }
 });
