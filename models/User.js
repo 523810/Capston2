@@ -28,7 +28,17 @@ const UserSchema = new mongoose.Schema({
   readingMbti: {
     type: String,
     default: null
-  }
+  },
+  // 💡 소셜 기능: 내가 팔로우하는 사람들 명단
+  following: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }],
+  // 💡 소셜 기능: 나를 팔로우하는 사람들 명단
+  followers: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User' 
+  }]
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -256,5 +256,90 @@ router.post('/mbti', auth, async (req, res) => {
     res.status(500).json({ message: '성향 테스트 결과를 저장하는 중 에러가 발생했습니다.' });
   }
 });
+// 🔎 [GET] 친구 검색 API (주소: /api/users/search?keyword=하민)
+router.get('/search', auth, async (req, res) => {
+  try {
+    const { keyword } = req.query;
+    if (!keyword) {
+      return res.status(400).json({ message: '검색어를 입력해주세요!' });
+    }
+
+    // 닉네임이나 이메일에 검색어가 포함된 유저 찾기 (정규식 사용, 대소문자 무시)
+    const users = await User.find({
+      $or: [
+        { nickname: { $regex: keyword, $options: 'i' } },
+        { email: { $regex: keyword, $options: 'i' } }
+      ]
+    }).select('nickname email readingMbti'); // 비밀번호 등은 빼고 안전하게 전달
+
+    res.status(200).json(users);
+  } catch (error) {
+    console.error('유저 검색 에러:', error);
+    res.status(500).json({ message: '유저 검색 중 에러가 발생했습니다.' });
+  }
+});
+
+// 🤝 [POST] 팔로우 / 언팔로우 토글 API (주소: /api/users/:targetUserId/follow)
+router.post('/:targetUserId/follow', auth, async (req, res) => {
+  try {
+    const myId = req.user.id; // 내 아이디
+    const { targetUserId } = req.params; // 내가 누른 상대방 아이디
+
+    if (myId === targetUserId) {
+      return res.status(400).json({ message: '자기 자신은 팔로우할 수 없습니다. 😅' });
+    }
+
+    const me = await User.findById(myId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!targetUser) {
+      return res.status(404).json({ message: '존재하지 않는 유저입니다.' });
+    }
+
+    // 이미 팔로우 중인지 확인
+    const isFollowing = me.following.includes(targetUserId);
+
+    if (isFollowing) {
+      // 💔 언팔로우 처리: 내 following 명단에서 빼고, 상대방 followers 명단에서 나를 뺌
+      me.following.pull(targetUserId);
+      targetUser.followers.pull(myId);
+      await me.save();
+      await targetUser.save();
+      return res.status(200).json({ message: '언팔로우 되었습니다.', isFollowing: false });
+    } else {
+      // 💖 팔로우 처리: 내 following 명단에 넣고, 상대방 followers 명단에 나를 넣음
+      me.following.push(targetUserId);
+      targetUser.followers.push(myId);
+      await me.save();
+      await targetUser.save();
+      return res.status(200).json({ message: '팔로우 성공!', isFollowing: true });
+    }
+  } catch (error) {
+    console.error('팔로우 처리 에러:', error);
+    res.status(500).json({ message: '팔로우 처리 중 에러가 발생했습니다.' });
+  }
+});
+
+// 👥 [GET] 내가 팔로우하는 사람들 목록 보기 (주소: /api/users/:userId/following)
+router.get('/:userId/following', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).populate('following', 'nickname email readingMbti');
+    if (!user) return res.status(404).json({ message: '유저를 찾을 수 없습니다.' });
+    res.status(200).json(user.following);
+  } catch (error) {
+    res.status(500).json({ message: '팔로잉 목록을 불러오는 중 에러가 발생했습니다.' });
+  }
+});
+
+// 👀 [GET] 나를 팔로우하는 사람들 목록 보기 (주소: /api/users/:userId/followers)
+router.get('/:userId/followers', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).populate('followers', 'nickname email readingMbti');
+    if (!user) return res.status(404).json({ message: '유저를 찾을 수 없습니다.' });
+    res.status(200).json(user.followers);
+  } catch (error) {
+    res.status(500).json({ message: '팔로워 목록을 불러오는 중 에러가 발생했습니다.' });
+  }
+});
 
 module.exports = router;
