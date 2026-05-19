@@ -72,7 +72,7 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign(
       { id: user._id }, 
       process.env.JWT_SECRET || 'mySuperSecretKey', 
-      { expiresIn: '1h' }
+      { expiresIn: '1d' } // 💡 24시간 유지 (기존 1h → 1d)
     );
 
     // 3. 문 열어주기! (성공 응답)
