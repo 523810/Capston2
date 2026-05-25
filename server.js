@@ -62,6 +62,10 @@ app.use('/api/handmedowns', handMeDownRoutes);
 const chatRoutes = require('./routes/chats');
 app.use('/api/chats', chatRoutes);
 
+// 👇 추가됨: 1:1 다이렉트 메시지(DM) API 창구 연결!
+const dmRoutes = require('./routes/dms');
+app.use('/api/dms', dmRoutes);
+
 app.get('/', (req, res) => {
   res.send('교환독서 백엔드 서버가 정상적으로 켜졌습니다! (Socket.io 탑재 완료) 🚀');
 });
@@ -72,9 +76,15 @@ const Chat = require('./models/Chat'); // 채팅 DB 금고 불러오기
 io.on('connection', (socket) => {
   console.log(`🔌 누군가 소켓 서버에 접속했습니다! (ID: ${socket.id})`);
 
+  // 🆕 유저가 접속하면 자신의 userId로 개인 방 입장 (DM 수신용)
+  socket.on('registerUser', (userId) => {
+    socket.join(userId); // userId를 방 이름으로 개인 채널 생성
+    console.log(`👤 유저 ${userId} 개인 채널 등록 완료`);
+  });
+
   // 1. 유저가 특정 모임방 주파수(roomId)로 입장할 때
   socket.on('joinRoom', (roomId) => {
-    socket.join(roomId); // 해당 방 번호의 소켓 채널로 입장
+    socket.join(roomId);
     console.log(`🙋‍♂️ 유저가 ${roomId} 방에 입장했습니다.`);
   });
 
@@ -82,22 +92,41 @@ io.on('connection', (socket) => {
   socket.on('sendMessage', async (data) => {
     try {
       const { roomId, userId, message } = data;
-
-      // 먼저 DB 금고에 채팅 기록 안전하게 저장
       const newChat = new Chat({ roomId, userId, message });
       await newChat.save();
-
-      // 저장한 채팅 기록을 작성자 닉네임과 함께 다시 묶어서(Populate 느낌) 방 안의 모두에게 방송(emit)
       const populatedChat = await Chat.findById(newChat._id).populate('userId', 'nickname');
-
-      // 같은 방(roomId)에 있는 모든 사람에게 'receiveMessage' 라는 이름으로 데이터 쏴주기
       io.to(roomId).emit('receiveMessage', populatedChat);
     } catch (error) {
       console.error('소켓 메시지 전송 에러:', error);
     }
   });
 
-  // 3. 유저가 방을 나가거나 앱을 껐을 때
+  // 🆕 3. 1:1 DM 실시간 전송
+  socket.on('sendDM', async (data) => {
+    try {
+      const DirectMessage = require('./models/DirectMessage');
+      const { senderId, receiverId, content } = data;
+
+      // DB에 저장
+      const newDM = new DirectMessage({ senderId, receiverId, content });
+      await newDM.save();
+
+      const populatedDM = await DirectMessage.findById(newDM._id)
+        .populate('senderId', 'nickname')
+        .populate('receiverId', 'nickname');
+
+      // 수신자 개인 채널로 실시간 전송
+      io.to(receiverId).emit('receiveDM', populatedDM);
+      // 발신자에게도 본인이 보낸 메시지 확인용으로 전송
+      io.to(senderId).emit('receiveDM', populatedDM);
+
+      console.log(`💌 DM: ${senderId} → ${receiverId}`);
+    } catch (error) {
+      console.error('DM 소켓 전송 에러:', error);
+    }
+  });
+
+  // 4. 유저가 방을 나가거나 앱을 껐을 때
   socket.on('disconnect', () => {
     console.log('🔌 소켓 접속이 끊어졌습니다.');
   });
