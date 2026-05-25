@@ -7,25 +7,41 @@ const auth = require('../middleware/auth'); // 문지기
 // (기존 코드와의 호환성을 위해 auth 미들웨어를 강제하지 않음)
 router.post('/', async (req, res) => {
   try {
-    // 프론트에서 쏴줄 데이터: "어떤 책을, 몇 페이지 읽었나?"
-    // (이전 버전의 readPage 와 새로운 readPages 둘 다 지원)
-    const { userId, bookId, readPage, readPages, date } = req.body;
+    // 프론트에서 쏴줄 데이터: "어떤 책을, 몇 페이지 읽었나?" + "별점, 감상, 공개여부"
+    const { userId, bookId, readPage, readPages, date, status, rating, review, isPublic } = req.body;
 
     // 프론트가 날짜를 안 보냈을 경우 오늘 날짜 "YYYY-MM-DD" 로 직접 생성
     const today = new Date();
     const dateString = date || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
     const newLog = new ReadingLog({
-      userId, // 예전처럼 body에서 바로 받음
+      userId, 
       bookId,
-      readPages: readPages || readPage || 0, // 구버전(readPage)과 신버전(readPages) 모두 커버
-      date: dateString 
+      readPages: readPages || readPage || 0,
+      date: dateString,
+      status: status || '읽는 중',
+      rating: rating || 0,
+      review: review || '',
+      isPublic: isPublic || false
     });
 
     await newLog.save(); // DB 금고에 저장!
     
+    // 📢 만약 "내 피드에 공개하기(isPublic: true)"를 체크했고, 감상평(review)을 썼다면?
+    // -> 필사 게시판(Annotation)에도 자동으로 글을 하나 올려준다!
+    if (newLog.isPublic && newLog.review) {
+      const Annotation = require('../models/Annotation');
+      const newAnnotation = new Annotation({
+        userId: newLog.userId,
+        bookId: newLog.bookId,
+        annotationType: 'QUOTE_TEXT',
+        quote: newLog.review, // 감상평을 피드 내용으로!
+      });
+      await newAnnotation.save();
+    }
+
     res.status(201).json({ 
-      message: '독서 기록 저장 성공! 그래프 쑥쑥 올라간다!', 
+      message: '독서 기록 저장 성공! (피드 공개 설정 시 게시판에도 올라갑니다)', 
       readingLog: newLog 
     });
 
