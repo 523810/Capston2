@@ -32,7 +32,8 @@ router.get('/my', auth, async (req, res) => {
     const myAnnotations = await Annotation.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
       .populate('bookId', 'title thumbnail') // 책 정보도 같이 가져옴
-      .populate('userId', 'nickname');
+      .populate('userId', 'nickname')
+      .populate('comments.userId', 'nickname'); // 💬 댓글 작성자 닉네임도 같이 가져오기
 
     res.status(200).json(myAnnotations);
   } catch (error) {
@@ -48,7 +49,8 @@ router.get('/scraps', auth, async (req, res) => {
     const scrapedAnnotations = await Annotation.find({ likes: req.user.id })
       .sort({ createdAt: -1 })
       .populate('bookId', 'title thumbnail') 
-      .populate('userId', 'nickname');
+      .populate('userId', 'nickname')
+      .populate('comments.userId', 'nickname');
 
     res.status(200).json(scrapedAnnotations);
   } catch (error) {
@@ -112,7 +114,8 @@ router.get('/exhibition', async (req, res) => {
     // 일단 DB에서 데이터를 다 가져온 후 (데이터가 적은 캡스톤용이라 가능)
     let annotations = await Annotation.find()
       .populate('bookId', 'title thumbnail')
-      .populate('userId', 'nickname');
+      .populate('userId', 'nickname')
+      .populate('comments.userId', 'nickname');
 
     // 프론트가 누른 탭에 따라 정렬 방식 바꾸기!
     if (tab && tab.toUpperCase() === 'TRENDING') {
@@ -139,7 +142,8 @@ router.get('/:roomId', async (req, res) => {
     // 방 안에서는 옛날 글부터 최근 글로 보여줄 수도 있고, 최근 글부터 보여줄 수도 있음 (여기선 최근 글 먼저)
     const annotations = await Annotation.find({ roomId: req.params.roomId })
       .sort({ createdAt: -1 })
-      .populate('userId', 'nickname');
+      .populate('userId', 'nickname')
+      .populate('comments.userId', 'nickname');
 
     res.status(200).json(annotations);
   } catch (error) {
@@ -176,6 +180,63 @@ router.post('/:id/like', auth, async (req, res) => {
   } catch (error) {
     console.error('좋아요 처리 에러:', error);
     res.status(500).json({ message: '좋아요 처리 중 에러가 발생했습니다.' });
+  }
+});
+
+// 💬 [POST] 특정 피드에 댓글(답글) 달기
+router.post('/:id/comments', auth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ message: '댓글 내용을 입력해주세요.' });
+
+    const annotation = await Annotation.findById(req.params.id);
+    if (!annotation) return res.status(404).json({ message: '해당 피드를 찾을 수 없습니다.' });
+
+    // 댓글 목록(배열)에 내 아이디랑 내용 밀어넣기
+    annotation.comments.push({
+      userId: req.user.id,
+      content
+    });
+
+    await annotation.save();
+    
+    // 방금 쓴 댓글 작성자 닉네임을 프론트에 바로 보내주기 위해 새로고침(Populate)
+    const updatedAnnotation = await Annotation.findById(req.params.id)
+      .populate('comments.userId', 'nickname');
+
+    res.status(201).json({
+      message: '댓글이 등록되었습니다! 💬',
+      comments: updatedAnnotation.comments
+    });
+  } catch (error) {
+    console.error('댓글 작성 에러:', error);
+    res.status(500).json({ message: '댓글 작성 중 에러가 발생했습니다.' });
+  }
+});
+
+// 🗑️ [DELETE] 특정 피드의 내 댓글 삭제하기
+router.delete('/:id/comments/:commentId', auth, async (req, res) => {
+  try {
+    const annotation = await Annotation.findById(req.params.id);
+    if (!annotation) return res.status(404).json({ message: '해당 피드를 찾을 수 없습니다.' });
+
+    // 피드 안에 있는 여러 댓글 중, 지우려는 댓글 찾기
+    const comment = annotation.comments.id(req.params.commentId);
+    if (!comment) return res.status(404).json({ message: '해당 댓글을 찾을 수 없습니다.' });
+
+    // 내가 쓴 댓글이 맞는지 검사
+    if (comment.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '본인이 작성한 댓글만 삭제할 수 있습니다.' });
+    }
+
+    // 댓글 삭제 빵!
+    annotation.comments.pull(req.params.commentId);
+    await annotation.save();
+
+    res.status(200).json({ message: '댓글이 삭제되었습니다. 🗑️' });
+  } catch (error) {
+    console.error('댓글 삭제 에러:', error);
+    res.status(500).json({ message: '댓글 삭제 중 에러가 발생했습니다.' });
   }
 });
 

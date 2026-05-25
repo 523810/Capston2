@@ -22,6 +22,13 @@ const annotationSchema = new mongoose.Schema({
   // 좋아요(스크랩) 한 유저들의 ID 목록 (누가 이 글을 좋아했는지 기억)
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   
+  // 💬 댓글 목록 (피드에 달린 소통 글)
+  comments: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    content: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  
   createdAt: { type: Date, default: Date.now }
 });
 
