@@ -267,6 +267,39 @@ router.delete('/:roomId', auth, async (req, res) => {
   }
 });
 
+// 🏃‍♂️ [POST] 모임방 나가기 (주소: /api/rooms/:roomId/leave)
+router.post('/:roomId/leave', auth, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const userId = req.user.id;
+
+    const room = await Room.findById(roomId);
+    if (!room) {
+      return res.status(404).json({ message: '방을 찾을 수 없습니다.' });
+    }
+
+    // 1. 방장인지 확인 (방장은 못 나감! 방을 폭파해야 함)
+    if (room.hostId.toString() === userId) {
+      return res.status(400).json({ message: '방장은 방을 나갈 수 없습니다. [방 삭제]를 이용해주세요.' });
+    }
+
+    // 2. 내가 명단에 있는지 확인
+    const memberIndex = room.members.findIndex(m => m.userId.toString() === userId);
+    if (memberIndex === -1) {
+      return res.status(400).json({ message: '이미 방에 없는 유저입니다.' });
+    }
+
+    // 3. 명단에서 내 이름 지우기
+    room.members.splice(memberIndex, 1);
+    await room.save();
+
+    res.status(200).json({ message: '모임방에서 성공적으로 나갔습니다. 👋' });
+  } catch (error) {
+    console.error('방 나가기 에러:', error);
+    res.status(500).json({ message: '방 나가기 처리 중 에러가 발생했습니다.' });
+  }
+});
+
 // 📝 [PATCH] 모임방 정보(소개글, 제목 등) 수정하기 (주소: /api/rooms/:roomId)
 router.patch('/:roomId', auth, async (req, res) => {
   try {
