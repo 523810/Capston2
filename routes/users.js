@@ -11,7 +11,7 @@ const auth = require('../middleware/auth');
 // 🎯 [POST] '진짜' 회원가입 API (주소: /api/users/register)
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, nickname } = req.body;
+    const { email, password, nickname, phone } = req.body;
 
     // 1. 깐깐한 문지기: "잠깐! 이미 가입된 이메일인지 DB 금고 확인 좀 할게요!"
     const existingUser = await User.findOne({ email });
@@ -27,7 +27,8 @@ router.post('/register', async (req, res) => {
     const newUser = new User({
       email,
       password: hashedPassword,
-      nickname
+      nickname,
+      phone: phone || null // 📱 전화번호 추가!
     });
 
     // 4. DB 금고에 저장!
@@ -123,6 +124,21 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// 👤 [GET] 내 정보 불러오기 API (주소: /api/users/me) - 프로필 수정 화면 등에서 사용
+router.get('/me', auth, async (req, res) => {
+  try {
+    // 토큰에서 추출한 내 ID로 DB 조회 (비밀번호는 안전하게 제외)
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: '유저 정보를 찾을 수 없습니다.' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('내 정보 조회 에러:', error);
+    res.status(500).json({ message: '내 정보를 불러오는 중 에러가 발생했습니다.' });
+  }
+});
+
 // 🎯 [GET] 마이페이지 유저 통계 가져오기 (주소: /api/users/:userId/profile)
 router.get('/:userId/profile', async (req, res) => {
   try {
@@ -185,12 +201,13 @@ router.get('/:userId/profile', async (req, res) => {
 // 🎯 [PUT] 마이페이지 프로필 수정 API (주소: /api/users/profile)
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { nickname, newPassword } = req.body;
+    const { nickname, newPassword, phone } = req.body;
     const userId = req.user.id; // auth 미들웨어가 챙겨준 내 ID
 
     // 바꿀 정보 바구니
     let updateFields = {};
     if (nickname) updateFields.nickname = nickname;
+    if (phone) updateFields.phone = phone; // 📱 전화번호 수정 추가!
     
     if (newPassword) {
       const salt = await bcrypt.genSalt(10);
