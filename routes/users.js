@@ -208,6 +208,12 @@ router.get('/:userId/profile', async (req, res) => {
     let readingTemp = 36.5 + (combinedPages / 100);
     if (readingTemp > 100) readingTemp = 100;
 
+    // 🏆 독서 레벨(칭호) 부여 시스템!
+    let readingLevel = '🌱 독서 새싹';
+    if (combinedPages >= 1000) readingLevel = '👑 독서의 신';
+    else if (combinedPages >= 500) readingLevel = '🦅 지식 탐험가';
+    else if (combinedPages >= 100) readingLevel = '🐛 활자 중독 책벌레';
+
     // 6. 프론트엔드가 받기 좋게 포장해서 전달
     res.status(200).json({
       message: '프로필 통계 조회 성공! 📊',
@@ -216,7 +222,8 @@ router.get('/:userId/profile', async (req, res) => {
         temperature: readingTemp.toFixed(1),
         participatingRooms: participatingCount,
         finishedBooks: finishedCount,
-        totalReadPages: combinedPages // 모임방 + 독서기록 합산 페이지
+        totalReadPages: combinedPages, // 모임방 + 독서기록 합산 페이지
+        readingLevel // 방금 만든 독서 칭호 추가!
       }
     });
 
@@ -324,6 +331,40 @@ router.post('/mbti', auth, async (req, res) => {
     res.status(500).json({ message: '성향 테스트 결과를 저장하는 중 에러가 발생했습니다.' });
   }
 });
+// 🤝 [GET] MBTI 기반 찰떡궁합 독서 짝꿍 추천 (주소: /api/users/recommend-friends)
+router.get('/recommend-friends', auth, async (req, res) => {
+  try {
+    const me = await User.findById(req.user.id);
+    
+    // 만약 내가 아직 MBTI 검사를 안 했다면?
+    if (!me.readingMbti) {
+      return res.status(200).json({ 
+        message: 'MBTI 검사를 먼저 진행해주세요!',
+        recommended: [] 
+      });
+    }
+
+    // 나랑 같은 MBTI를 가진 유저들 찾기 (나 자신은 제외, 이미 팔로우한 사람도 제외하면 좋지만 캡스톤이니까 심플하게 나만 제외!)
+    // 최대 4명까지만 랜덤 느낌으로 뽑아주기 (최신 가입자 순)
+    const recommendedUsers = await User.find({ 
+      readingMbti: me.readingMbti,
+      _id: { $ne: req.user.id } // $ne = Not Equal (나랑 아이디가 다른 사람만)
+    })
+    .select('nickname email readingMbti') // 비밀번호는 빼고 예쁘게 포장
+    .sort({ createdAt: -1 })
+    .limit(4);
+
+    res.status(200).json({
+      message: `나와 같은 '${me.readingMbti}' 성향을 가진 분들이에요!`,
+      recommended: recommendedUsers
+    });
+
+  } catch (error) {
+    console.error('친구 추천 에러:', error);
+    res.status(500).json({ message: '추천 친구를 불러오는 중 에러가 발생했습니다.' });
+  }
+});
+
 // 🔎 [GET] 친구 검색 API (주소: /api/users/search?keyword=하민)
 router.get('/search', auth, async (req, res) => {
   try {
