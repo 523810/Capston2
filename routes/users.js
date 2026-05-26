@@ -93,6 +93,33 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// 🎯 [POST] 이메일 찾기 API (주소: /api/users/find-email)
+// 닉네임과 전화번호가 일치하면 가입된 이메일 중 앞의 일부만 가려서(선택사항) 알려줍니다.
+router.post('/find-email', async (req, res) => {
+  try {
+    const { nickname, phone } = req.body;
+
+    if (!nickname || !phone) {
+      return res.status(400).json({ message: '닉네임과 전화번호를 모두 입력해주세요!' });
+    }
+
+    const user = await User.findOne({ nickname, phone });
+    
+    if (!user) {
+      return res.status(404).json({ message: '입력하신 정보와 일치하는 계정이 없습니다.' });
+    }
+
+    // 보안을 위해 이메일 뒷부분을 별표 처리할 수도 있지만, 일단 전체를 다 돌려주도록 하겠습니다.
+    res.status(200).json({ 
+      message: '이메일을 찾았습니다!',
+      email: user.email 
+    });
+  } catch (error) {
+    console.error('이메일 찾기 에러:', error);
+    res.status(500).json({ message: '이메일 찾기 중 서버 에러가 발생했습니다.' });
+  }
+});
+
 // 🎯 [POST] 비밀번호 재설정 API (주소: /api/users/reset-password)
 // 이메일 인증이 불가능하므로, '이메일'과 '가입할 때 썼던 닉네임' 두 가지가 모두 일치하면 비밀번호를 바꿔줍니다!
 router.post('/reset-password', async (req, res) => {
