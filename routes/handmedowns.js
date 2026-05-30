@@ -2,16 +2,39 @@ const express = require('express');
 const router = express.Router();
 const HandMeDown = require('../models/HandMeDown');
 const auth = require('../middleware/auth'); // 문지기
+const multer = require('multer'); // 📸 사진 업로드 라이브러리 추가!
+const path = require('path');
+const fs = require('fs');
+
+// 📁 업로드 폴더가 없으면 자동으로 만들어주기
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
+
+// 📦 사진 파일 저장 설정
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 // 🎯 [POST] 물려주기 게시판에 새 글 올리기 (주소: /api/handmedowns)
-router.post('/', auth, async (req, res) => {
+// 💡 프론트엔드가 폼데이터(사진 파일)를 보낼 수 있도록 upload.single('image') 장착!
+router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     const { bookTitle, bookThumbnail, bookAuthor, comment, contactLink, tradeType } = req.body;
+
+    // 사진 파일이 업로드되었다면 파일 경로를 쓰고, 파일이 없고 텍스트 주소만 왔다면 그걸 씁니다.
+    const finalThumbnail = req.file ? `/uploads/${req.file.filename}` : bookThumbnail;
 
     const newPost = new HandMeDown({
       ownerId: req.user.id, // 토큰에서 자동 추출
       bookTitle,
-      bookThumbnail,
+      bookThumbnail: finalThumbnail, // 👈 수정한 사진 경로 적용!
       bookAuthor,
       comment,
       contactLink,

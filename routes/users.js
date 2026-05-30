@@ -35,13 +35,13 @@ router.post('/register', async (req, res) => {
     await newUser.save();
 
     // 5. 성공 응답 쏴주기 (💡 보안을 위해 프론트엔드에 응답할 때 비밀번호는 빼고 보내주는 센스!)
-    res.status(201).json({ 
-      message: '회원가입 대성공! 이제 로그인할 수 있습니다.', 
+    res.status(201).json({
+      message: '회원가입 대성공! 이제 로그인할 수 있습니다.',
       user: {
         id: newUser._id,
         email: newUser.email,
         nickname: newUser.nickname
-      } 
+      }
     });
 
   } catch (error) {
@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
 
     // 2. 깐깐한 비밀번호 검사: "입력한 비번 갈아서 DB 외계어랑 비교할게요!"
     const isMatch = await bcrypt.compare(password, user.password); // 👈 핵심 마법 1줄!
-    
+
     if (!isMatch) {
       return res.status(400).json({ message: '비밀번호가 일치하지 않습니다.' });
     }
@@ -71,8 +71,8 @@ router.post('/login', async (req, res) => {
     // 🎟️ 자유이용권(토큰) 발급! 
     // 유저 고유 ID를 담아서, 비밀 도장(환경변수 JWT_SECRET)으로 꽉 찍어줌! (유효기간 1시간)
     const token = jwt.sign(
-      { id: user._id }, 
-      process.env.JWT_SECRET || 'mySuperSecretKey', 
+      { id: user._id },
+      process.env.JWT_SECRET || 'mySuperSecretKey',
       { expiresIn: '1d' } // 💡 24시간 유지 (기존 1h → 1d)
     );
 
@@ -104,15 +104,15 @@ router.post('/find-email', async (req, res) => {
     }
 
     const user = await User.findOne({ nickname, phone });
-    
+
     if (!user) {
       return res.status(404).json({ message: '입력하신 정보와 일치하는 계정이 없습니다.' });
     }
 
     // 보안을 위해 이메일 뒷부분을 별표 처리할 수도 있지만, 일단 전체를 다 돌려주도록 하겠습니다.
-    res.status(200).json({ 
+    res.status(200).json({
       message: '이메일을 찾았습니다!',
-      email: user.email 
+      email: user.email
     });
   } catch (error) {
     console.error('이메일 찾기 에러:', error);
@@ -187,10 +187,10 @@ router.get('/:userId/profile', async (req, res) => {
     myRooms.forEach(room => {
       // 이 방에서 내 이름표(userId)를 달고 있는 데이터만 쏙 찾기
       const myInfo = room.members.find(m => m.userId.toString() === userId);
-      
+
       if (myInfo) {
         totalReadPages += myInfo.readPages; // 총 읽은 페이지에 누적!
-        
+
         // 💡 임시 완독 로직: 일단 100페이지 이상 읽었으면 완독으로 치자! 
         // (나중에 책의 실제 총 페이지 수와 비교하도록 업그레이드 가능)
         if (myInfo.readPages >= 100) {
@@ -242,15 +242,15 @@ router.put('/profile', auth, async (req, res) => {
     let updateFields = {};
     if (nickname) updateFields.nickname = nickname;
     if (phone) updateFields.phone = phone; // 📱 전화번호 수정 추가!
-    
+
     if (newPassword) {
       const salt = await bcrypt.genSalt(10);
       updateFields.password = await bcrypt.hash(newPassword, salt);
     }
 
     const updatedUser = await User.findByIdAndUpdate(userId, updateFields, { new: true });
-    
-    res.status(200).json({ 
+
+    res.status(200).json({
       message: '프로필이 성공적으로 수정되었습니다.',
       user: { nickname: updatedUser.nickname, email: updatedUser.email }
     });
@@ -335,24 +335,24 @@ router.post('/mbti', auth, async (req, res) => {
 router.get('/recommend-friends', auth, async (req, res) => {
   try {
     const me = await User.findById(req.user.id);
-    
+
     // 만약 내가 아직 MBTI 검사를 안 했다면?
     if (!me.readingMbti) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         message: 'MBTI 검사를 먼저 진행해주세요!',
-        recommended: [] 
+        recommended: []
       });
     }
 
     // 나랑 같은 MBTI를 가진 유저들 찾기 (나 자신은 제외, 이미 팔로우한 사람도 제외하면 좋지만 캡스톤이니까 심플하게 나만 제외!)
     // 최대 4명까지만 랜덤 느낌으로 뽑아주기 (최신 가입자 순)
-    const recommendedUsers = await User.find({ 
+    const recommendedUsers = await User.find({
       readingMbti: me.readingMbti,
       _id: { $ne: req.user.id } // $ne = Not Equal (나랑 아이디가 다른 사람만)
     })
-    .select('nickname email readingMbti') // 비밀번호는 빼고 예쁘게 포장
-    .sort({ createdAt: -1 })
-    .limit(4);
+      .select('nickname email readingMbti') // 비밀번호는 빼고 예쁘게 포장
+      .sort({ createdAt: -1 })
+      .limit(4);
 
     res.status(200).json({
       message: `나와 같은 '${me.readingMbti}' 성향을 가진 분들이에요!`,
