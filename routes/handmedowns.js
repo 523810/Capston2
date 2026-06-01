@@ -23,13 +23,14 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // 🎯 [POST] 물려주기 게시판에 새 글 올리기 (주소: /api/handmedowns)
-// 💡 프론트엔드가 폼데이터(사진 파일)를 보낼 수 있도록 upload.single('image') 장착!
-router.post('/', auth, upload.single('image'), async (req, res) => {
+// 💡 프론트엔드에서 필드명을 'image'가 아닌 다른 이름(예: bookThumbnail)으로 보낼 때 
+// multer가 500 에러(Unexpected field)를 던지는 것을 방지하기 위해 upload.any()를 사용합니다.
+router.post('/', auth, upload.any(), async (req, res) => {
   try {
     const { bookTitle, bookThumbnail, bookAuthor, comment, contactLink, tradeType } = req.body;
 
-    // 사진 파일이 업로드되었다면 파일 경로를 쓰고, 파일이 없고 텍스트 주소만 왔다면 그걸 씁니다.
-    const finalThumbnail = req.file ? `/uploads/${req.file.filename}` : bookThumbnail;
+    // 사진 파일이 어떤 필드명으로든 업로드되었다면 첫 번째 파일의 경로를 씁니다.
+    const finalThumbnail = (req.files && req.files.length > 0) ? `/uploads/${req.files[0].filename}` : bookThumbnail;
 
     const newPost = new HandMeDown({
       ownerId: req.user.id, // 토큰에서 자동 추출
