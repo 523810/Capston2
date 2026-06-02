@@ -63,7 +63,7 @@ router.get('/scraps', auth, async (req, res) => {
 router.post('/', auth, upload.single('image'), async (req, res) => {
   try {
     console.log('📥 [피드 업로드 요청 들어옴] 데이터:', req.body);
-    const { roomId, bookId, annotationType, quote, content, text, color } = req.body;
+    const { roomId, bookId, customBookTitle, customBookAuthor, annotationType, quote, content, text, color } = req.body;
     const userId = req.user.id; // 프론트에서 body로 안 보내도, 토큰(auth)에서 자동으로 빼내기!
     
     // 사진 파일이 정상적으로 택배로 왔다면 해당 파일의 경로를 저장, 아니면 빈 문자열
@@ -81,6 +81,8 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       roomId,
       userId,
       bookId, // 피드를 올릴 때 랭킹 점수를 위해 책 ID 필수! (현재 DB 임시 해제 상태)
+      customBookTitle,  // 👈 직접 입력 도서명
+      customBookAuthor, // 👈 직접 입력 작가명
       annotationType, // 'QUOTE_TEXT' 또는 'PHOTO_MEMO'
       quote: finalQuote,
       imageUrl,

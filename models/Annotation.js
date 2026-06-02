@@ -7,6 +7,10 @@ const annotationSchema = new mongoose.Schema({
   // 어느 책에 대한 피드인지 참조 (데모 시연을 위해 임시로 필수 해제!)
   bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book', required: false },
   
+  // 💡 사용자가 책을 검색하지 않고 '직접 입력'했을 때 저장되는 필드
+  customBookTitle: { type: String, default: '' },
+  customBookAuthor: { type: String, default: '' },
+  
   // 타입도 임시로 필수 해제
   annotationType: { type: String, enum: ['QUOTE_TEXT', 'PHOTO_MEMO'], required: false, default: 'QUOTE_TEXT' },
   
