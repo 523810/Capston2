@@ -81,8 +81,8 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       roomId,
       userId,
       bookId, // 피드를 올릴 때 랭킹 점수를 위해 책 ID 필수! (현재 DB 임시 해제 상태)
-      customBookTitle,  // 👈 직접 입력 도서명
-      customBookAuthor, // 👈 직접 입력 작가명
+      customBookTitle: customBookTitle || req.body.bookTitle || req.body.title || '',  // 👈 하민님이 어떤 이름으로 보낼지 몰라 다 받아줌!
+      customBookAuthor: customBookAuthor || req.body.bookAuthor || req.body.author || '', // 👈 방어 코드 추가
       annotationType, // 'QUOTE_TEXT' 또는 'PHOTO_MEMO'
       quote: finalQuote,
       imageUrl,
