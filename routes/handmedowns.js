@@ -25,17 +25,30 @@ const upload = multer({ storage: storage });
 // 🎯 [POST] 물려주기 게시판에 새 글 올리기 (주소: /api/handmedowns)
 // 💡 프론트엔드에서 필드명을 'image'가 아닌 다른 이름(예: bookThumbnail)으로 보낼 때 
 // multer가 500 에러(Unexpected field)를 던지는 것을 방지하기 위해 upload.any()를 사용합니다.
+// 🎯 [POST] 물려주기 게시판에 새 글 올리기 (주소: /api/handmedowns)
+// 💡 프론트엔드에서 필드명을 'image'가 아닌 다른 이름(예: bookThumbnail)으로 보낼 때 
+// multer가 500 에러(Unexpected field)를 던지는 것을 방지하기 위해 upload.any()를 사용합니다.
 router.post('/', auth, upload.any(), async (req, res) => {
   try {
     const { bookTitle, bookThumbnail, bookAuthor, comment, contactLink, tradeType } = req.body;
 
-    // 사진 파일이 어떤 필드명으로든 업로드되었다면 첫 번째 파일의 경로를 씁니다.
-    const finalThumbnail = (req.files && req.files.length > 0) ? `/uploads/${req.files[0].filename}` : bookThumbnail;
+    // 1. 여러 장의 사진 경로를 담을 빈 바구니 준비
+    let imageUrls = [];
+
+    // 2. 프론트엔드에서 사진 파일들을 폼데이터로 보냈다면, 전부 찾아서 바구니에 담기
+    if (req.files && req.files.length > 0) {
+      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+    }
+
+    // 3. 기존 bookThumbnail(단일 대표 이미지) 호환성 유지 
+    // 파일이 여러 개 왔다면 첫 번째 사진을 대표로 쓰고, 파일이 아예 없다면 프론트가 텍스트로 보낸 주소(bookThumbnail)를 씀
+    const finalThumbnail = imageUrls.length > 0 ? imageUrls[0] : bookThumbnail;
 
     const newPost = new HandMeDown({
       ownerId: req.user.id, // 토큰에서 자동 추출
       bookTitle,
-      bookThumbnail: finalThumbnail, // 👈 수정한 사진 경로 적용!
+      bookThumbnail: finalThumbnail, 
+      images: imageUrls, // 👈 🚀 핵심! 여러 장의 사진 경로 배열 통째로 저장!
       bookAuthor,
       comment,
       contactLink,

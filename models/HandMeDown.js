@@ -22,6 +22,10 @@ const handMeDownSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  // 💡 여러 장의 사진 업로드를 지원하기 위한 배열 추가!
+  images: [{
+    type: String
+  }],
   bookAuthor: {
     type: String,
     default: ''
