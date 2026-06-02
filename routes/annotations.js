@@ -31,7 +31,7 @@ router.get('/my', auth, async (req, res) => {
     // auth 미들웨어를 통과했으므로 req.user.id 에 내 아이디가 들어있음
     const myAnnotations = await Annotation.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
-      .populate('bookId', 'title thumbnail') // 책 정보도 같이 가져옴
+      .populate('bookId', 'title author thumbnail') // 👈 작가(author) 정보 추가!
       .populate('userId', 'nickname')
       .populate('comments.userId', 'nickname'); // 💬 댓글 작성자 닉네임도 같이 가져오기
 
@@ -48,7 +48,7 @@ router.get('/scraps', auth, async (req, res) => {
     // likes 배열 안에 내 아이디(req.user.id)가 포함된 피드만 쏙 뽑아오기
     const scrapedAnnotations = await Annotation.find({ likes: req.user.id })
       .sort({ createdAt: -1 })
-      .populate('bookId', 'title thumbnail') 
+      .populate('bookId', 'title author thumbnail') // 👈 작가(author) 정보 추가!
       .populate('userId', 'nickname')
       .populate('comments.userId', 'nickname');
 
@@ -113,7 +113,7 @@ router.get('/exhibition', async (req, res) => {
 
     // 일단 DB에서 데이터를 다 가져온 후 (데이터가 적은 캡스톤용이라 가능)
     let annotations = await Annotation.find()
-      .populate('bookId', 'title thumbnail')
+      .populate('bookId', 'title author thumbnail') // 👈 작가(author) 정보 추가!
       .populate('userId', 'nickname')
       .populate('comments.userId', 'nickname');
 
@@ -142,6 +142,7 @@ router.get('/:roomId', async (req, res) => {
     // 방 안에서는 옛날 글부터 최근 글로 보여줄 수도 있고, 최근 글부터 보여줄 수도 있음 (여기선 최근 글 먼저)
     const annotations = await Annotation.find({ roomId: req.params.roomId })
       .sort({ createdAt: -1 })
+      .populate('bookId', 'title author thumbnail') // 👈 방 내부 게시판에도 책 정보 추가!
       .populate('userId', 'nickname')
       .populate('comments.userId', 'nickname');
 
