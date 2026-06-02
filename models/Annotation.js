@@ -17,8 +17,11 @@ const annotationSchema = new mongoose.Schema({
   // 피드 본문 (인상깊은 문장) - 팀장님 피드백 반영: 글 내용은 무조건 있어야 하므로 다시 필수!
   quote: { type: String, required: true },
   
-  // 사진 첨부 (선택)
+  // 사진 첨부 (선택, 기존 호환용 단일 이미지)
   imageUrl: { type: String },
+  
+  // 💡 여러 장의 사진 업로드를 지원하기 위한 배열 추가!
+  images: [{ type: String }],
   
   // 피드 작성자의 고유 메모 색상 등 UI용 필드 유지
   color: { type: String, default: '#FFFFFF' }, 

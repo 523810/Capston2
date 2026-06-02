@@ -59,15 +59,21 @@ router.get('/scraps', auth, async (req, res) => {
   }
 });
 
-// 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기 (multer 추가!)
-router.post('/', auth, upload.single('image'), async (req, res) => {
+// 🎯 [POST] 책 피드(게시판)에 새 글/사진 남기기 (multer 다중 업로드 지원으로 변경!)
+router.post('/', auth, upload.any(), async (req, res) => {
   try {
     console.log('📥 [피드 업로드 요청 들어옴] 데이터:', req.body);
     const { roomId, bookId, customBookTitle, customBookAuthor, annotationType, quote, content, text, color } = req.body;
     const userId = req.user.id; // 프론트에서 body로 안 보내도, 토큰(auth)에서 자동으로 빼내기!
     
-    // 사진 파일이 정상적으로 택배로 왔다면 해당 파일의 경로를 저장, 아니면 빈 문자열
-    const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
+    // 💡 여러 장의 사진 경로를 담을 바구니 준비
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+    }
+
+    // 기존 프론트엔드 호환성을 위해 imageUrl에는 첫 번째 사진 경로를 저장
+    const finalImageUrl = imageUrls.length > 0 ? imageUrls[0] : '';
 
     // 하민님이 프론트에서 변수명을 quote가 아닌 content나 text로 보냈을 때를 대비한 방어 코드!
     const finalQuote = quote || content || text;
@@ -85,7 +91,8 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
       customBookAuthor: customBookAuthor || req.body.bookAuthor || req.body.author || '', // 👈 방어 코드 추가
       annotationType, // 'QUOTE_TEXT' 또는 'PHOTO_MEMO'
       quote: finalQuote,
-      imageUrl,
+      imageUrl: finalImageUrl,
+      images: imageUrls, // 👈 🚀 핵심! 여러 장의 사진 경로 배열 저장
       color
     });
 
