@@ -2,13 +2,33 @@ const express = require('express');
 const router = express.Router();
 const ReadingLog = require('../models/ReadingLog'); // 어제 만든 기록 설계도!
 const auth = require('../middleware/auth'); // 문지기
+const multer = require('multer');
+const path = require('path');
+
+// 📦 사진 파일 저장 설정 (이름 겹치지 않게 현재 시간 붙여서 저장)
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 // 🎯 [POST] 오늘의 독서 진행률 기록 API (주소: /api/reading-logs)
 // (기존 코드와의 호환성을 위해 auth 미들웨어를 강제하지 않음)
-router.post('/', async (req, res) => {
+router.post('/', upload.any(), async (req, res) => {
   try {
     // 프론트에서 쏴줄 데이터: "어떤 책을, 몇 페이지 읽었나?" + "별점, 감상, 공개여부"
     const { userId, bookId, readPage, readPages, date, status, rating, review, isPublic } = req.body;
+
+    // 💡 여러 장의 사진 경로를 담을 바구니 준비
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+    }
+    const finalImageUrl = imageUrls.length > 0 ? imageUrls[0] : '';
 
     // 프론트가 날짜를 안 보냈을 경우 오늘 날짜 "YYYY-MM-DD" 로 직접 생성
     const today = new Date();
@@ -22,6 +42,8 @@ router.post('/', async (req, res) => {
       status: status || '읽는 중',
       rating: rating || 0,
       review: review || '',
+      imageUrl: finalImageUrl,
+      images: imageUrls,
       isPublic: isPublic || false
     });
 
@@ -36,6 +58,8 @@ router.post('/', async (req, res) => {
         bookId: newLog.bookId,
         annotationType: 'QUOTE_TEXT',
         quote: newLog.review, // 감상평을 피드 내용으로!
+        imageUrl: finalImageUrl,
+        images: imageUrls,
       });
       await newAnnotation.save();
     }

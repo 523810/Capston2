@@ -10,6 +10,11 @@ const readingLogSchema = new mongoose.Schema({
   status: { type: String, default: '읽는 중' }, // 독서 상태 (예: 읽는 중, 다 읽음 등)
   rating: { type: Number, default: 0 }, // 나의 별점 (1~5)
   review: { type: String, default: '' }, // 나의 감상
+  
+  // 📸 사진 첨부 (선택, 다중 업로드 지원)
+  imageUrl: { type: String },
+  images: [{ type: String }],
+  
   isPublic: { type: Boolean, default: false } // 내 피드에 공개하기 여부
 });
 
