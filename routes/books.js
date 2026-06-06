@@ -58,10 +58,15 @@ router.put('/:id/click', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     // 프론트에서 카카오 검색리스트 중 하나를 클릭해서 넘겨준 정보
-    const { title, authors, isbn, thumbnail, publisher, datetime, contents } = req.body;
+    const { title, authors, author, isbn, thumbnail, publisher, datetime, contents } = req.body;
 
-    // 카카오 작가 정보는 배열(authors)로 들어오므로 하나로 합치기
-    const authorStr = authors && authors.length > 0 ? authors.join(', ') : '작자 미상';
+    // 카카오 작가 정보는 배열(authors)로 들어오고, 알라딘은 문자열(author)로 들어옵니다.
+    let authorStr = '작자 미상';
+    if (authors && Array.isArray(authors) && authors.length > 0) {
+      authorStr = authors.join(', ');
+    } else if (author) {
+      authorStr = author;
+    }
     
     // 이미 DB에 있는 책인지 확인
     const existingBook = await Book.findOne({ isbn });
