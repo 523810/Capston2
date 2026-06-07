@@ -144,4 +144,23 @@ router.get('/stats', auth, async (req, res) => {
   }
 });
 
+// 📓 [GET] 나의 독서 노트 (코멘트/감상평 모아보기) API (주소: /api/reading-logs/my-notes)
+router.get('/my-notes', auth, async (req, res) => {
+  try {
+    // 💡 프론트의 "나의 독서 노트 칸"을 위한 API!
+    // 내 기록 중에서 감상평(review)을 한 글자라도 쓴 것만 찾아오기
+    const notes = await ReadingLog.find({ 
+      userId: req.user.id,
+      review: { $ne: '' } // 비어있지 않은 것만! (비공개로 쓴 것도 내가 보는 내 노트니까 전부 가져옵니다)
+    })
+    .populate('bookId', 'title author thumbnail') // 어떤 책인지 정보 붙이기
+    .sort({ createdAt: -1, date: -1 }); // 최신순 정렬
+
+    res.status(200).json(notes);
+  } catch (error) {
+    console.error('독서 노트 불러오기 에러:', error);
+    res.status(500).json({ message: '독서 노트를 불러오는 중 에러가 발생했습니다.' });
+  }
+});
+
 module.exports = router;

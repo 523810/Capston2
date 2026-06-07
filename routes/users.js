@@ -268,10 +268,18 @@ router.delete('/withdraw', auth, async (req, res) => {
     // 1. 유저 정보 삭제
     await User.findByIdAndDelete(userId);
 
-    // 2. (선택) 이 유저가 쓴 글도 다 지워줄 수 있음 (일단 유저만 지우는 것으로 처리)
-    // await Annotation.deleteMany({ userId });
+    // 2. 💡 프론트엔드 요청 반영: 익명으로 남지 않도록 해당 유저가 쓴 글 전부 지우기!
+    const Annotation = require('../models/Annotation');
+    const HandMeDown = require('../models/HandMeDown');
+    // 독서 기록은 상단에 이미 require 되어 있음 (ReadingLog)
+    
+    await Annotation.deleteMany({ userId }); // 필사 피드 삭제
+    await HandMeDown.deleteMany({ userId }); // 물려주기 게시글 삭제
+    await ReadingLog.deleteMany({ userId }); // 독서 기록 삭제
+    
+    // (채팅 내역은 상대방을 위해 남겨둘지 지울지 정책에 따라 다르지만, 보통 지우지 않거나 '알 수 없음' 처리합니다. 여기선 게시글만 싹 지웁니다!)
 
-    res.status(200).json({ message: '회원 탈퇴가 완료되었습니다. 이용해 주셔서 감사합니다.' });
+    res.status(200).json({ message: '회원 탈퇴가 완료되었습니다. 관련된 모든 게시글도 함께 삭제되었습니다.' });
   } catch (error) {
     console.error('회원 탈퇴 에러:', error);
     res.status(500).json({ message: '회원 탈퇴 처리 중 에러가 발생했습니다.' });
