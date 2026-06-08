@@ -119,6 +119,45 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
+// 🛠️ [PUT] 물려주기 게시글 내용 수정하기 (주소: /api/handmedowns/:id)
+router.put('/:id', auth, upload.any(), async (req, res) => {
+  try {
+    const post = await HandMeDown.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
+    }
+
+    // 내가 올린 글만 수정 가능
+    if (post.ownerId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '본인이 올린 글만 수정할 수 있습니다! ❌' });
+    }
+
+    const { bookTitle, bookAuthor, comment, contactLink, tradeType } = req.body;
+    
+    // 💡 이미지 수정: 새 이미지가 업로드되었다면 교체, 아니면 기존 이미지 유지
+    let imageUrls = post.images || [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+      post.bookThumbnail = imageUrls[0]; // 대표 썸네일 업데이트
+    }
+
+    // 변경된 텍스트 내용 업데이트
+    if (bookTitle) post.bookTitle = bookTitle;
+    if (bookAuthor) post.bookAuthor = bookAuthor;
+    if (comment) post.comment = comment;
+    if (contactLink) post.contactLink = contactLink;
+    if (tradeType) post.tradeType = tradeType;
+    post.images = imageUrls;
+
+    await post.save();
+
+    res.status(200).json({ message: '물려주기 게시글이 성공적으로 수정되었습니다! ✨', post });
+  } catch (error) {
+    console.error('게시글 수정 에러:', error);
+    res.status(500).json({ message: '게시글 수정 중 에러가 발생했습니다.' });
+  }
+});
+
 // 💣 [DELETE] 물려주기 게시글 삭제하기 (주소: /api/handmedowns/:id)
 router.delete('/:id', auth, async (req, res) => {
   try {
