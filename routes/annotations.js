@@ -120,8 +120,10 @@ router.get('/exhibition', async (req, res) => {
   try {
     const { tab } = req.query; // 'NEW' 또는 'TRENDING'
 
-    // 일단 DB에서 데이터를 다 가져온 후 (데이터가 적은 캡스톤용이라 가능)
-    let annotations = await Annotation.find()
+    // 💡 프론트엔드 요청 반영: 모임방 내부 피드와 섞이지 않도록, roomId가 없는 '순수 필사 게시글'만 가져오기!
+    let annotations = await Annotation.find({ 
+      $or: [{ roomId: null }, { roomId: { $exists: false } }] 
+    })
       .populate('bookId', 'title author thumbnail') // 👈 작가(author) 정보 추가!
       .populate('userId', 'nickname')
       .populate('comments.userId', 'nickname');

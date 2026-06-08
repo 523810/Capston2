@@ -214,17 +214,27 @@ router.get('/:userId/profile', async (req, res) => {
     else if (combinedPages >= 500) readingLevel = '🦅 지식 탐험가';
     else if (combinedPages >= 100) readingLevel = '🐛 활자 중독 책벌레';
 
-    // 6. 프론트엔드가 받기 좋게 포장해서 전달
+    // 6. 💡 프론트엔드 요청 반영: 이 유저가 수집한 문장(순수 필사 피드)도 같이 찾아서 보내주기!
+    const Annotation = require('../models/Annotation');
+    const collections = await Annotation.find({ 
+      userId: userId, 
+      $or: [{ roomId: null }, { roomId: { $exists: false } }] 
+    })
+    .populate('bookId', 'title author thumbnail')
+    .sort({ createdAt: -1 });
+
+    // 7. 프론트엔드가 받기 좋게 포장해서 전달
     res.status(200).json({
       message: '프로필 통계 조회 성공! 📊',
-      user: user,
+      user: user, // 👈 여기에 mbti 정보(readingMbti)가 이미 포함되어 있음!
       stats: {
         temperature: readingTemp.toFixed(1),
         participatingRooms: participatingCount,
         finishedBooks: finishedCount,
         totalReadPages: combinedPages, // 모임방 + 독서기록 합산 페이지
         readingLevel // 방금 만든 독서 칭호 추가!
-      }
+      },
+      collections: collections // 👈 추가된 수집 문장 데이터!
     });
 
   } catch (error) {
