@@ -156,7 +156,17 @@ router.get('/my-notes', auth, async (req, res) => {
     .populate('bookId', 'title author thumbnail') // 어떤 책인지 정보 붙이기
     .sort({ createdAt: -1, date: -1 }); // 최신순 정렬
 
-    res.status(200).json(notes);
+    // 💡 하민님이 프론트 수정 안 하셔도 되도록 백엔드에서 특별 배려!
+    // DB의 thumbnail 값을 프론트가 쓰는 cover라는 이름으로 하나 더 복사해서 줍니다.
+    const formattedNotes = notes.map(note => {
+      const noteObj = note.toObject(); // Mongoose 객체를 순수 JSON으로 변환
+      if (noteObj.bookId && noteObj.bookId.thumbnail) {
+        noteObj.bookId.cover = noteObj.bookId.thumbnail; // cover 속성 추가!
+      }
+      return noteObj;
+    });
+
+    res.status(200).json(formattedNotes);
   } catch (error) {
     console.error('독서 노트 불러오기 에러:', error);
     res.status(500).json({ message: '독서 노트를 불러오는 중 에러가 발생했습니다.' });
