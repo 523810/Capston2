@@ -214,12 +214,9 @@ router.get('/:userId/profile', async (req, res) => {
     else if (combinedPages >= 500) readingLevel = '🦅 지식 탐험가';
     else if (combinedPages >= 100) readingLevel = '🐛 활자 중독 책벌레';
 
-    // 6. 💡 프론트엔드 요청 반영: 이 유저가 수집한 문장(순수 필사 피드)도 같이 찾아서 보내주기!
+    // 6. 💡 프론트엔드 요청 반영: 이 유저가 수집한 모든 문장(모임방 내부 + 외부 필사 전부 포함)을 가져오기!
     const Annotation = require('../models/Annotation');
-    const collections = await Annotation.find({ 
-      userId: userId, 
-      $or: [{ roomId: null }, { roomId: { $exists: false } }] 
-    })
+    const collections = await Annotation.find({ userId: userId })
     .populate('bookId', 'title author thumbnail')
     .sort({ createdAt: -1 });
 
