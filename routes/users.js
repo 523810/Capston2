@@ -214,9 +214,14 @@ router.get('/:userId/profile', async (req, res) => {
     else if (combinedPages >= 500) readingLevel = '🦅 지식 탐험가';
     else if (combinedPages >= 100) readingLevel = '🐛 활자 중독 책벌레';
 
-    // 6. 💡 프론트엔드 요청 반영: 이 유저가 수집한 모든 문장(모임방 내부 + 외부 필사 전부 포함)을 가져오기!
+    // 6. 💡 프론트엔드 기획 반영: 이 유저가 '직접 쓴 글' 뿐만 아니라 '좋아요(수집) 누른 남의 글'도 전부 가져오기!
     const Annotation = require('../models/Annotation');
-    const collections = await Annotation.find({ userId: userId })
+    const collections = await Annotation.find({ 
+      $or: [
+        { userId: userId }, // 내가 쓴 글
+        { likes: userId }   // 내가 좋아요(스크랩) 누른 글
+      ]
+    })
     .populate('bookId', 'title author thumbnail')
     .sort({ createdAt: -1 });
 
