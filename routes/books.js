@@ -58,7 +58,7 @@ router.put('/:id/click', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     // 프론트에서 카카오 검색리스트 중 하나를 클릭해서 넘겨준 정보
-    const { title, authors, author, isbn, thumbnail, publisher, datetime, contents } = req.body;
+    const { title, authors, author, isbn, thumbnail, cover, publisher, datetime, contents } = req.body;
 
     // 카카오 작가 정보는 배열(authors)로 들어오고, 알라딘은 문자열(author)로 들어옵니다.
     let authorStr = '작자 미상';
@@ -78,7 +78,7 @@ router.post('/', async (req, res) => {
       title,
       author: authorStr,
       isbn,
-      thumbnail,
+      thumbnail: thumbnail || cover || '', // 💡 카카오(thumbnail) 또는 알라딘(cover) 둘 다 대응
       publisher,
       datetime,
       contents
