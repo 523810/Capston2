@@ -225,5 +225,58 @@ router.delete('/:id', auth, async (req, res) => {
     res.status(500).json({ message: '독서 기록을 삭제하는 중 에러가 발생했습니다.' });
   }
 });
+// 🛠️ [PUT] 독서 기록 수정하기 API (주소: /api/reading-logs/:id)
+router.put('/:id', auth, upload.any(), async (req, res) => {
+  try {
+    const log = await ReadingLog.findById(req.params.id);
+    if (!log) return res.status(404).json({ message: '독서 기록을 찾을 수 없습니다.' });
+
+    // 본인 글만 수정 가능
+    if (log.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '본인의 독서 기록만 수정할 수 있습니다! ❌' });
+    }
+
+    const { date, readPages, review, isPublic, rating } = req.body;
+
+    // 이미지 교체 처리
+    let imageUrls = log.images || [];
+    if (req.files && req.files.length > 0) {
+      imageUrls = req.files.map(file => `/uploads/${file.filename}`);
+      log.imageUrl = imageUrls[0];
+    }
+
+    // 전송된 필드만 선택적으로 업데이트
+    if (date) log.date = date;
+    if (readPages !== undefined) log.readPages = Number(readPages);
+    if (review !== undefined) log.review = review;
+    if (isPublic !== undefined) log.isPublic = isPublic === 'true' || isPublic === true;
+    if (rating !== undefined) log.rating = Number(rating);
+    log.images = imageUrls;
+
+    await log.save();
+    res.status(200).json({ message: '독서 기록이 성공적으로 수정되었습니다! ✨', log });
+  } catch (error) {
+    console.error('독서 기록 수정 에러:', error);
+    res.status(500).json({ message: '독서 기록을 수정하는 중 에러가 발생했습니다.' });
+  }
+});
+
+// 🗑️ [DELETE] 독서 기록 삭제하기 API (주소: /api/reading-logs/:id)
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const log = await ReadingLog.findById(req.params.id);
+    if (!log) return res.status(404).json({ message: '독서 기록을 찾을 수 없습니다.' });
+
+    if (log.userId.toString() !== req.user.id) {
+      return res.status(403).json({ message: '본인의 독서 기록만 삭제할 수 있습니다! ❌' });
+    }
+
+    await ReadingLog.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: '독서 기록이 성공적으로 삭제되었습니다. 🗑️' });
+  } catch (error) {
+    console.error('독서 기록 삭제 에러:', error);
+    res.status(500).json({ message: '독서 기록을 삭제하는 중 에러가 발생했습니다.' });
+  }
+});
 
 module.exports = router;
